@@ -107,6 +107,50 @@ build followed (monorepo layout, data model, per-step roadmap).
   broadcasts with no REST call in between. 42/42 tests passing repo-wide; `tsc --noEmit` clean; verified
   the dev server boots with the WS engine attached and `/health` still responds.
 
-### Step 5 — WebRTC integration — not started
+### Step 5 — WebRTC integration — ✅ done (backend signaling only, see scope note)
+
+Scoped down from the original roadmap line: the existing frontend (`src/app`, `RoomView`, `useRoom`)
+still talks entirely to the old anonymous in-memory system — none of Steps 2-4 touched it. Rather than
+silently doing a large frontend migration (auth pages, new room flow) as a side effect of "add WebRTC",
+asked and confirmed: build and test the signaling relay server-side, and ship the WebRTC hook/components
+as reusable but **not yet mounted into any page**. Wiring them into a live, authenticated room flow is
+deferred to an explicitly-scoped pass.
+
+- `server/src/ws/registry.ts` — added `sendToUser` (targeted delivery to one participant's socket(s)) and
+  `onlineUserIds` (dedup'd list of connected user ids in a room).
+- `server/src/ws/index.ts`:
+  - On connect: sends `presence:sync` (current online user ids) directly to the new socket, then
+    broadcasts `presence:joined`/`presence:left` to the room on connect/disconnect.
+  - Relays `webrtc:offer` / `webrtc:answer` / `webrtc:ice-candidate` client messages to the named target
+    user via `sendToUser`, tagging the relayed message with `from`; the server never inspects SDP/ICE
+    contents, just routes them.
+- `server/src/routes/rooms.ts` — `PATCH /rooms/:roomId/media` persists a participant's own
+  `cameraOn`/`micOn` and broadcasts the update, so toggling camera/mic is visible to everyone on reload,
+  not just live over WebRTC.
+- Tests: extended `tests/ws.test.ts` (now 7 tests) — connection rejected for a non-participant,
+  presence:joined/left fire correctly, signaling relay reaches only the targeted peer (not a bystander),
+  and the media-toggle REST call round-trips through a broadcast. Caught and fixed one real bug this way:
+  the join route takes the room's `code`, not its `id` - the test initially used the wrong one and got a
+  404, which is exactly the kind of mismatch this test is meant to catch. 46/46 tests passing; `tsc
+  --noEmit` clean in `server/`.
+- Frontend (unmounted, not yet reachable from any page):
+  - `src/lib/serverConfig.ts` — base URL helpers for the new backend + a `patchRoomMedia` fetch helper.
+  - `src/hooks/useWebRTC.ts` — mesh WebRTC over the same signaling WS: the newly-joined peer offers to
+    everyone already online (from `presence:sync`), already-present peers only answer, so each pair
+    negotiates exactly once with no glare. Manages local `getUserMedia`, a `Map<userId, RTCPeerConnection>`,
+    and camera/mic toggles (local track mute + `patchRoomMedia`). STUN-only (`stun:stun.l.google.com:19302`)
+    - no TURN server/credentials available in this environment, so peers behind symmetric NATs may fail
+    to connect; worth revisiting if that turns out to matter.
+  - `src/components/room/VideoTile.tsx`, `VideoGrid.tsx`, `MediaControls.tsx` — unstyled functional
+    components built on the hook.
+  - Fixed root `tsconfig.json` to `exclude: ["node_modules", "server"]` — its `**/*.ts` include was
+    sweeping the independent `server/` TypeScript project into the Next.js app's typecheck (and would
+    have done the same during `next build`).
+  - Known follow-up: the new backend's auth cookie is `sameSite: "lax"`, and the frontend (`:3000`) and
+    backend (`:4000`) are different origins in dev. Lax cookies aren't sent on cross-site `fetch`/WebSocket
+    upgrade calls initiated from a page (only on top-level navigations), so the REST/WS calls from these
+    hooks may not actually carry the auth cookie once wired into a real page. Needs a decision when the
+    frontend migration happens: a dev proxy so both are same-origin, or token-based WS auth instead of the
+    cookie.
 
 ### Step 6 — Document upload & async quiz pipeline — not started

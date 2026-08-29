@@ -164,3 +164,25 @@ roomsRouter.post("/:roomId/session", requireAuth, requireRoomRole("ADMIN"), asyn
   void broadcastRoomUpdate(req.params.roomId);
   res.json({ room: serializeRoom(room!) });
 });
+
+const mediaSchema = z
+  .object({ cameraOn: z.boolean().optional(), micOn: z.boolean().optional() })
+  .refine((data) => data.cameraOn !== undefined || data.micOn !== undefined, {
+    message: "Provide cameraOn and/or micOn.",
+  });
+
+roomsRouter.patch("/:roomId/media", requireAuth, requireRoomRole("ADMIN", "MEMBER"), async (req, res) => {
+  const parsed = mediaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid input." });
+    return;
+  }
+
+  await prisma.participant.update({
+    where: { roomId_userId: { roomId: req.params.roomId, userId: req.user!.id } },
+    data: parsed.data,
+  });
+  const room = await resolveAndLoadRoom(req.params.roomId);
+  void broadcastRoomUpdate(req.params.roomId);
+  res.json({ room: serializeRoom(room!) });
+});

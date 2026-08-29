@@ -38,3 +38,24 @@ export function sendToRoom(roomId: string, payload: unknown): void {
     if (ws.readyState === ws.OPEN) ws.send(data);
   }
 }
+
+/** Delivers to every socket belonging to a specific participant (e.g. multiple open tabs). */
+export function sendToUser(roomId: string, userId: string, payload: unknown): void {
+  const set = roomSockets.get(roomId);
+  if (!set || set.size === 0) return;
+  const data = JSON.stringify(payload);
+  for (const ws of set) {
+    if (clientInfo.get(ws)?.userId === userId && ws.readyState === ws.OPEN) ws.send(data);
+  }
+}
+
+export function onlineUserIds(roomId: string): string[] {
+  const set = roomSockets.get(roomId);
+  if (!set) return [];
+  const ids = new Set<string>();
+  for (const ws of set) {
+    const info = clientInfo.get(ws);
+    if (info) ids.add(info.userId);
+  }
+  return [...ids];
+}
