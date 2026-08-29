@@ -153,4 +153,45 @@ deferred to an explicitly-scoped pass.
     frontend migration happens: a dev proxy so both are same-origin, or token-based WS auth instead of the
     cookie.
 
-### Step 6 — Document upload & async quiz pipeline — not started
+### Step 6 — Document upload & async quiz pipeline — ✅ done
+
+Kept to the same backend-only scope as Step 5, for the same reason: no live page to mount an upload UI
+onto yet. The REST API is fully built and tested end-to-end (upload -> async parse -> quiz generation ->
+list -> take -> score); an upload form is frontend-migration work, deferred with the rest.
+
+- `server/prisma/schema.prisma` — added `Document.storagePath` (the on-disk filename multer generates,
+  separate from the user-facing original `filename`). Migration `20260829162952_add_document_storage_path`.
+- `server/src/lib/quizgen.ts` — dependency-free heuristic quiz generator (no LLM key available in this
+  environment): splits text into sentences, spreads up to 5 questions evenly across the document, blanks
+  out each sentence's most salient word (longest non-stopword) as a cloze question, and draws 3 multiple-
+  choice distractors from salient words found elsewhere in the document. Skips a candidate sentence if it
+  can't find enough distinct distractors rather than producing a degenerate question.
+- `server/src/lib/pipelineQueue.ts` — a simple in-process FIFO job queue (no Redis/BullMQ available
+  without Docker); `enqueue(job)` runs jobs sequentially in the background, request handlers never block
+  on parsing.
+- `server/src/lib/documentPipeline.ts` — `processDocument(id)`: marks the `Document` `PARSING`, extracts
+  text (`pdf-parse` for PDF, raw UTF-8 read for txt/md, from `server/uploads/`), marks it `READY` with the
+  parsed text, runs `generateQuiz`, persists `Quiz`/`QuizQuestion`/`QuizChoice` rows if any questions came
+  out, and broadcasts `{ type: "quiz:ready", documentId, quizId }` over the room's WS. Marks `FAILED` on
+  any error rather than leaving the document stuck `PARSING`.
+- `server/src/routes/documents.ts` — `POST /rooms/:roomId/documents` (multer disk storage, 10MB cap,
+  restricted to .txt/.md/.pdf by mimetype or extension, any participant can upload) enqueues processing
+  and returns immediately with status `PENDING`; `GET /rooms/:roomId/documents` lists them.
+- `server/src/routes/quizzes.ts` — `GET /rooms/:roomId/quizzes` (list), `GET .../quizzes/:quizId` (full
+  question/choice text, `isCorrect` deliberately omitted so taking the quiz isn't trivial), `POST
+  .../quizzes/:quizId/attempts` (scores the submitted responses server-side against `QuizChoice.isCorrect`,
+  persists a `QuizAttempt`/`QuizResponse`, and returns the score plus the correct choice ids so the client
+  can reveal answers after submission).
+- Tests: `tests/quizgen.test.ts` (4 unit tests on the heuristic itself) and `tests/documents.test.ts`
+  (5 tests: rejects an unsupported file type, uploads a fixture and polls until the async pipeline reaches
+  `READY` with a generated quiz attached, quiz questions don't leak `isCorrect`, and a perfect-vs-all-wrong
+  attempt scores `total`/`0` respectively). 55/55 tests passing repo-wide; `tsc --noEmit` clean; verified
+  the dev server boots and creates `server/uploads/` on startup.
+- Minor known item: test-run uploaded files aren't deleted from `server/uploads/` afterward (the dir is
+  gitignored, so this doesn't affect the repo - just local disk clutter over many runs).
+
+**All 6 steps of the original template are now implemented on the backend.** What's deliberately not
+done: the frontend still runs on the old anonymous in-memory system end-to-end (Steps 5 and 6 both
+produced backend APIs plus, for WebRTC, unmounted reusable components) - migrating real pages onto the
+new backend (auth, room creation/join, RBAC-gated controls, video grid, upload/quiz UI, and resolving the
+cross-origin cookie question noted in Step 5) is its own scoped pass, not yet started.
