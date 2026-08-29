@@ -2,6 +2,8 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { authRouter } from "./routes/auth.js";
+import { documentsRouter } from "./routes/documents.js";
+import { quizzesRouter } from "./routes/quizzes.js";
 import { roomsRouter } from "./routes/rooms.js";
 
 export function createApp() {
@@ -17,6 +19,8 @@ export function createApp() {
 
   app.use("/auth", authRouter);
   app.use("/rooms", roomsRouter);
+  app.use("/rooms", documentsRouter);
+  app.use("/rooms", quizzesRouter);
 
   return app;
 }
