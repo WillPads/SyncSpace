@@ -79,7 +79,33 @@ build followed (monorepo layout, data model, per-step roadmap).
   removal → full FSM cycle including the 409 on re-starting from Quiz Phase and the 400 on a sub-minute
   duration → admin removes a participant). 39/39 tests passing repo-wide; `tsc --noEmit` clean.
 
-### Step 4 — Real-time WebSocket engine — not started
+### Step 4 — Real-time WebSocket engine — ✅ done
+
+- `server/src/lib/roomView.ts` — extracted the shared `roomInclude`/`serializeRoom`/`resolveAndLoadRoom`
+  helpers out of `routes/rooms.ts` so both the REST layer and the WS layer serialize rooms identically.
+- `server/src/ws/registry.ts` — in-memory `Map<roomId, Set<WebSocket>>` connection registry
+  (`addClient`/`removeClient`/`connectedRoomIds`/`sendToRoom`).
+- `server/src/ws/index.ts`:
+  - `attachWebSocketServer(httpServer)` — handles the raw `upgrade` event on the shared HTTP server
+    (path `/ws?roomId=...`), authenticates via the same JWT cookie used by REST (parsed manually with the
+    `cookie` package, since this runs outside Express's request cycle), and checks room membership before
+    calling `wss.handleUpgrade` — rejects with a real HTTP 401/403 rather than accepting then closing.
+  - `broadcastRoomUpdate(roomId)` — resolves the live timer snapshot (persisting on phase-boundary
+    crossings, reusing `resolveAndLoadRoom`) and pushes `{ type: "room:update", room }` to every socket in
+    that room.
+  - A tick loop (`WS_TICK_MS`, default 1000ms) calls `broadcastRoomUpdate` for every room with connected
+    clients, so a running timer counts down for everyone without any client-side polling.
+  - `routes/rooms.ts` now calls `broadcastRoomUpdate` after every mutation (join, invite toggle,
+    participant removal, session action) so REST-driven changes fan out over WS immediately, not just on
+    the next tick.
+  - `src/index.ts` now builds an explicit `http.Server` (`http.createServer(app)`) so Express and the WS
+    upgrade handler share one port.
+- Tests: `tests/ws.test.ts` — rejects a connection without a valid cookie (real 401 on the upgrade, not an
+  accept-then-close), two concurrently connected clients both receive the initial snapshot and then both
+  receive the updated snapshot after a REST session-start call, and a third test (tick interval shortened
+  to 50ms via `WS_TICK_MS` in `tests/setup.ts`) confirms `remainingSeconds` decreases across two tick
+  broadcasts with no REST call in between. 42/42 tests passing repo-wide; `tsc --noEmit` clean; verified
+  the dev server boots with the WS engine attached and `/health` still responds.
 
 ### Step 5 — WebRTC integration — not started
 
