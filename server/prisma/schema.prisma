@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum SessionState {
+  IDLE
+  POMODORO_ACTIVE
+  BREAK
+  QUIZ_PHASE
+}
+
+enum DocumentStatus {
+  PENDING
+  PARSING
+  READY
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+
+  memberships Participant[]
+  adminRooms  Room[]        @relation("RoomAdmin")
+  documents   Document[]
+}
+
+model Room {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  adminId       String
+  inviteEnabled Boolean  @default(false)
+  capacity      Int      @default(10)
+  createdAt     DateTime @default(now())
+
+  admin        User             @relation("RoomAdmin", fields: [adminId], references: [id])
+  participants Participant[]
+  session      PomodoroSession?
+  documents    Document[]
+}
+
+model Participant {
+  id         String   @id @default(uuid())
+  roomId     String
+  userId     String
+  role       Role     @default(MEMBER)
+  joinedAt   DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  cameraOn   Boolean  @default(false)
+  micOn      Boolean  @default(false)
+
+  room Room @relation(fields: [roomId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+}
+
+model PomodoroSession {
+  id                String       @id @default(uuid())
+  roomId            String       @unique
+  state             SessionState @default(IDLE)
+  focusDurationSec  Int          @default(1500)
+  breakDurationSec  Int          @default(300)
+  remainingSeconds  Float        @default(1500)
+  isRunning         Boolean      @default(false)
+  updatedAt         DateTime     @default(now())
+  sessionsCompleted Int          @default(0)
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+model Document {
+  id           String         @id @default(uuid())
+  roomId       String
+  uploadedById String
+  filename     String
+  mimeType     String
+  status       DocumentStatus @default(PENDING)
+  parsedText   String?
+  createdAt    DateTime       @default(now())
+
+  room       Room   @relation(fields: [roomId], references: [id])
+  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+  quizzes    Quiz[]
+}
+
+model Quiz {
+  id         String   @id @default(uuid())
+  roomId     String
+  documentId String
+  title      String
+  createdAt  DateTime @default(now())
+
+  document  Document       @relation(fields: [documentId], references: [id])
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+}
+
+model QuizQuestion {
+  id     String @id @default(uuid())
+  quizId String
+  prompt String
+  order  Int
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id])
+  choices QuizChoice[]
+}
+
+model QuizChoice {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+
+  question QuizQuestion @relation(fields: [questionId], references: [id])
+}
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  quizId      String
+  userId      String
+  score       Int       @default(0)
+  completedAt DateTime?
+
+  quiz      Quiz           @relation(fields: [quizId], references: [id])
+  responses QuizResponse[]
+}
+
+model QuizResponse {
+  id         String @id @default(uuid())
+  attemptId  String
+  questionId String
+  choiceId   String
+
+  attempt QuizAttempt @relation(fields: [attemptId], references: [id])
+}
