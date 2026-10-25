@@ -8,3 +8,5 @@ prisma/test.db-journal
 .env
 *.tsbuildinfo
 /coverage
+/.test-db
+/.dev-db

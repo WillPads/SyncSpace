@@ -15,9 +15,12 @@ describe("requireRoomRole", () => {
   const outsiderEmail = `rbac-outsider-${suffix}@example.com`;
   const password = "correct-horse-battery-staple";
 
-  const app = createApp();
-  app.get("/rooms/:roomId/admin-only", requireAuth, requireRoomRole("ADMIN"), (_req, res) => {
-    res.json({ ok: true });
+  const app = createApp({
+    extraRoutes: (app) => {
+      app.get("/rooms/:roomId/admin-only", requireAuth, requireRoomRole("ADMIN"), (_req, res) => {
+        res.json({ ok: true });
+      });
+    },
   });
 
   let roomId = "";

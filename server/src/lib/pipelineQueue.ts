@@ -1,24 +1,42 @@
 type Job = () => Promise<void>;
 
-const queue: Job[] = [];
-let running = false;
+/**
+ * In-process job queue for document processing (no Redis in this deployment). At most
+ * CONCURRENCY jobs run at once so one slow LLM call doesn't hold up every other upload.
+ * Jobs survive restarts because their state lives in the Document row: on boot,
+ * recoverInterruptedDocuments() re-queues anything left PENDING or PARSING.
+ */
+const CONCURRENCY = 2;
 
-/** No Redis/BullMQ available in this environment - a simple FIFO in-process queue instead. */
+const queue: Job[] = [];
+let running = 0;
+let idleWaiters: Array<() => void> = [];
+
 export function enqueue(job: Job): void {
   queue.push(job);
-  void drain();
+  pump();
 }
 
-async function drain(): Promise<void> {
-  if (running) return;
-  running = true;
-  while (queue.length > 0) {
+function pump(): void {
+  while (running < CONCURRENCY && queue.length > 0) {
     const job = queue.shift()!;
-    try {
-      await job();
-    } catch (err) {
-      console.error("Pipeline job failed:", err);
-    }
+    running += 1;
+    job()
+      .catch((err: unknown) => console.error("Pipeline job failed:", err))
+      .finally(() => {
+        running -= 1;
+        pump();
+        if (running === 0 && queue.length === 0) {
+          const waiters = idleWaiters;
+          idleWaiters = [];
+          for (const resolve of waiters) resolve();
+        }
+      });
   }
-  running = false;
+}
+
+/** Resolves once every queued job has finished (used by tests and graceful shutdown). */
+export function whenIdle(): Promise<void> {
+  if (running === 0 && queue.length === 0) return Promise.resolve();
+  return new Promise((resolve) => idleWaiters.push(resolve));
 }

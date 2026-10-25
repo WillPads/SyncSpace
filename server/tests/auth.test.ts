@@ -27,7 +27,7 @@ describe("auth routes", () => {
     expect(res.status).toBe(201);
     expect(res.body.user).toMatchObject({ email, displayName: "Ada" });
     expect(res.body.user.passwordHash).toBeUndefined();
-    expect(res.headers["set-cookie"]?.[0]).toMatch(/syncspace_token=/);
+    expect(res.headers["set-cookie"]?.[0]).toMatch(/syncspace_session=/);
   });
 
   it("rejects a duplicate registration", async () => {

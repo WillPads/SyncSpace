@@ -30,6 +30,16 @@ function candidateWords(text: string): string[] {
   return [...text.matchAll(CANDIDATE_WORD_RE)].map((m) => m[0]).filter((w) => !STOPWORDS.has(w.toLowerCase()));
 }
 
+/** Distinct words, compared case-insensitively ("Energy" and "energy" are one choice, not two). */
+function uniqueWords(words: string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const word of words) {
+    const key = word.toLowerCase();
+    if (!seen.has(key)) seen.set(key, word);
+  }
+  return [...seen.values()];
+}
+
 function pickBlankWord(sentence: string): string | null {
   const words = candidateWords(sentence);
   if (words.length === 0) return null;
@@ -50,16 +60,16 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 /**
- * Deterministic, dependency-free quiz generation (no LLM key available in this environment):
- * picks a spread of sentences across the document, blanks out each one's most salient word as
- * a cloze question, and draws multiple-choice distractors from salient words found elsewhere in
- * the document.
+ * Dependency-free fallback for when Claude isn't configured or a call fails: picks a spread
+ * of sentences across the document, blanks out each one's most salient word as a cloze
+ * question, and draws multiple-choice distractors from salient words found elsewhere in the
+ * document.
  */
 export function generateQuiz(text: string): GeneratedQuestion[] {
   const sentences = splitSentences(text);
   if (sentences.length === 0) return [];
 
-  const globalPool = [...new Set(candidateWords(text))];
+  const globalPool = uniqueWords(candidateWords(text));
   const questions: GeneratedQuestion[] = [];
   const usedAnswers = new Set<string>();
 

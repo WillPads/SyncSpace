@@ -2,9 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// DATABASE_URL is what the app uses (on Neon: the pooled connection string).
+// DIRECT_URL is used by Prisma Migrate, which needs a direct, non-pooled connection.
+// Against a plain local Postgres, set both to the same URL.
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -26,6 +30,11 @@ enum DocumentStatus {
   FAILED
 }
 
+enum QuizGenerator {
+  LLM
+  HEURISTIC
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -33,9 +42,43 @@ model User {
   displayName  String
   createdAt    DateTime @default(now())
 
-  memberships Participant[]
-  adminRooms  Room[]        @relation("RoomAdmin")
-  documents   Document[]
+  memberships  Participant[]
+  adminRooms   Room[]        @relation("RoomAdmin")
+  documents    Document[]
+  sessions     Session[]
+  quizAttempts QuizAttempt[]
+  roomBans     RoomBan[]
+}
+
+/// A signed-in browser or device. The cookie carries a random token; only its SHA-256 hash is stored here.
+model Session {
+  id         String   @id
+  userId     String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  lastUsedAt DateTime @default(now())
+  userAgent  String?
+  ip         String?
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wsTickets WsTicket[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Single-use, short-lived credential for opening the room WebSocket from another origin.
+/// Only the SHA-256 hash of the ticket is stored; deleting the session deletes its tickets.
+model WsTicket {
+  id        String   @id
+  sessionId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([expiresAt])
 }
 
 model Room {
@@ -47,10 +90,14 @@ model Room {
   capacity      Int      @default(10)
   createdAt     DateTime @default(now())
 
-  admin        User             @relation("RoomAdmin", fields: [adminId], references: [id])
+  admin        User             @relation("RoomAdmin", fields: [adminId], references: [id], onDelete: Cascade)
   participants Participant[]
   session      PomodoroSession?
   documents    Document[]
+  quizzes      Quiz[]
+  bans         RoomBan[]
+
+  @@index([adminId])
 }
 
 model Participant {
@@ -58,15 +105,30 @@ model Participant {
   roomId     String
   userId     String
   role       Role     @default(MEMBER)
+  task       String   @default("")
   joinedAt   DateTime @default(now())
   lastSeenAt DateTime @default(now())
   cameraOn   Boolean  @default(false)
   micOn      Boolean  @default(false)
 
-  room Room @relation(fields: [roomId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, userId])
+  @@index([userId])
+}
+
+/// Users the room admin removed. They can't rejoin until the admin lifts the ban.
+model RoomBan {
+  roomId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
+  @@index([userId])
 }
 
 model PomodoroSession {
@@ -79,36 +141,48 @@ model PomodoroSession {
   isRunning         Boolean      @default(false)
   updatedAt         DateTime     @default(now())
   sessionsCompleted Int          @default(0)
+  /// Bumped on every write; writes are conditional on it (optimistic concurrency).
+  version           Int          @default(0)
 
-  room Room @relation(fields: [roomId], references: [id])
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model Document {
-  id           String         @id @default(uuid())
-  roomId       String
-  uploadedById String
-  filename     String
-  storagePath  String
-  mimeType     String
-  status       DocumentStatus @default(PENDING)
-  parsedText   String?
-  createdAt    DateTime       @default(now())
+  id            String         @id @default(uuid())
+  roomId        String
+  uploadedById  String
+  filename      String
+  storagePath   String
+  mimeType      String
+  status        DocumentStatus @default(PENDING)
+  failureReason String?
+  parsedText    String?
+  createdAt     DateTime       @default(now())
 
-  room       Room   @relation(fields: [roomId], references: [id])
-  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+  room       Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   quizzes    Quiz[]
+
+  @@index([roomId, createdAt])
+  @@index([uploadedById])
+  @@index([status])
 }
 
 model Quiz {
-  id         String   @id @default(uuid())
-  roomId     String
-  documentId String
-  title      String
-  createdAt  DateTime @default(now())
+  id          String        @id @default(uuid())
+  roomId      String
+  documentId  String
+  title       String
+  generatedBy QuizGenerator @default(HEURISTIC)
+  createdAt   DateTime      @default(now())
 
-  document  Document       @relation(fields: [documentId], references: [id])
+  room      Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  document  Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
+
+  @@index([roomId, createdAt])
+  @@index([documentId])
 }
 
 model QuizQuestion {
@@ -117,8 +191,11 @@ model QuizQuestion {
   prompt String
   order  Int
 
-  quiz    Quiz         @relation(fields: [quizId], references: [id])
-  choices QuizChoice[]
+  quiz      Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  choices   QuizChoice[]
+  responses QuizResponse[]
+
+  @@index([quizId, order])
 }
 
 model QuizChoice {
@@ -126,8 +203,12 @@ model QuizChoice {
   questionId String
   text       String
   isCorrect  Boolean @default(false)
+  order      Int     @default(0)
 
-  question QuizQuestion @relation(fields: [questionId], references: [id])
+  question  QuizQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  responses QuizResponse[]
+
+  @@index([questionId, order])
 }
 
 model QuizAttempt {
@@ -137,8 +218,12 @@ model QuizAttempt {
   score       Int       @default(0)
   completedAt DateTime?
 
-  quiz      Quiz           @relation(fields: [quizId], references: [id])
+  quiz      Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   responses QuizResponse[]
+
+  @@index([quizId, userId])
+  @@index([userId])
 }
 
 model QuizResponse {
@@ -147,5 +232,11 @@ model QuizResponse {
   questionId String
   choiceId   String
 
-  attempt QuizAttempt @relation(fields: [attemptId], references: [id])
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  choice   QuizChoice   @relation(fields: [choiceId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@index([choiceId])
 }

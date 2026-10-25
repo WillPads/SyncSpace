@@ -100,6 +100,10 @@ describe("documents & quiz pipeline", () => {
   });
 
   it("scores a submitted attempt against the correct choices", async () => {
+    // Answers only count during the quiz phase.
+    await agent.post(`/rooms/${roomId}/session`).send({ action: "start" }).expect(200);
+    await agent.post(`/rooms/${roomId}/session`).send({ action: "endSession" }).expect(200);
+
     const questions = await prisma.quizQuestion.findMany({ where: { quizId }, include: { choices: true } });
 
     const correctResponses = questions.map((q) => ({

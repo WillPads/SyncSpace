@@ -13,6 +13,7 @@ function makeSession(overrides: Partial<PomodoroSession> = {}): PomodoroSession 
     isRunning: false,
     updatedAt: new Date(0),
     sessionsCompleted: 0,
+    version: 0,
     ...overrides,
   };
 }
@@ -116,5 +117,83 @@ describe("resolveSession", () => {
     });
     const patch = resolveSession(session, new Date(15_000));
     expect(patch).toMatchObject({ state: "BREAK", remainingSeconds: 45, sessionsCompleted: 1 });
+  });
+
+  it("lands back in the original kind of phase after a full extra phase", () => {
+    // Focus ends at 10 s, the 50 s break at 60 s, then focus again: 10 s into it at t=70 s.
+    const session = makeSession({
+      state: "POMODORO_ACTIVE",
+      isRunning: true,
+      remainingSeconds: 10,
+      focusDurationSec: 100,
+      breakDurationSec: 50,
+    });
+    expect(resolveSession(session, new Date(70_000))).toMatchObject({
+      state: "POMODORO_ACTIVE",
+      remainingSeconds: 90,
+      sessionsCompleted: 1,
+    });
+  });
+
+  it("resolves a room left running for days in constant time, matching a step-by-step replay", () => {
+    const session = makeSession({
+      state: "BREAK",
+      isRunning: true,
+      remainingSeconds: 30,
+      focusDurationSec: 60,
+      breakDurationSec: 60,
+      sessionsCompleted: 3,
+    });
+    const now = new Date(3 * 24 * 60 * 60 * 1000 + 12_345);
+
+    // Reference: walk phase by phase.
+    let state = session.state;
+    let completed = session.sessionsCompleted;
+    let t = session.remainingSeconds;
+    const elapsed = now.getTime() / 1000;
+    while (t <= elapsed) {
+      if (state === "POMODORO_ACTIVE") completed += 1;
+      state = state === "POMODORO_ACTIVE" ? "BREAK" : "POMODORO_ACTIVE";
+      t += state === "BREAK" ? session.breakDurationSec : session.focusDurationSec;
+    }
+
+    const patch = resolveSession(session, now);
+    expect(patch.state).toBe(state);
+    expect(patch.sessionsCompleted).toBe(completed);
+    expect(patch.remainingSeconds).toBeCloseTo(t - elapsed, 6);
+    expect(patch.remainingSeconds).toBeGreaterThan(0);
+  });
+
+  it("ignores a clock that moved backwards", () => {
+    const session = makeSession({ state: "POMODORO_ACTIVE", isRunning: true, remainingSeconds: 100, updatedAt: new Date(10_000) });
+    expect(resolveSession(session, new Date(5_000))).toMatchObject({ state: "POMODORO_ACTIVE", remainingSeconds: 100 });
+  });
+});
+
+describe("applyAction after automatic transitions", () => {
+  const running = makeSession({
+    state: "POMODORO_ACTIVE",
+    isRunning: true,
+    remainingSeconds: 10,
+    focusDurationSec: 100,
+    breakDurationSec: 50,
+  });
+
+  it("pausing records the phase the timer is really in", () => {
+    const result = applyAction(running, "pause", new Date(20_000));
+    expect(result).toEqual({
+      ok: true,
+      patch: { isRunning: false, state: "BREAK", remainingSeconds: 40, sessionsCompleted: 1, updatedAt: new Date(20_000) },
+    });
+  });
+
+  it("ending the session keeps focus rounds that finished on their own", () => {
+    const result = applyAction(running, "endSession", new Date(20_000));
+    expect(result.ok && result.patch).toMatchObject({ state: "QUIZ_PHASE", isRunning: false, sessionsCompleted: 1 });
+  });
+
+  it("rejects durations above the ceiling", () => {
+    expect(applyAction(makeSession(), "start", new Date(0), { breakDurationSec: 4 * 60 * 60 + 1 }).ok).toBe(false);
+    expect(applyAction(makeSession(), "start", new Date(0), { focusDurationSec: 4 * 60 * 60 }).ok).toBe(true);
   });
 });

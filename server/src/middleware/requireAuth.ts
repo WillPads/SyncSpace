@@ -1,34 +1,41 @@
 import type { NextFunction, Request, Response } from "express";
-import { AUTH_COOKIE_NAME, verifyAuthToken } from "../lib/auth.js";
-import { prisma } from "../db.js";
+import {
+  type AuthenticatedUser,
+  SESSION_COOKIE_NAME,
+  clearSessionCookie,
+  setSessionCookie,
+  validateSession,
+} from "../lib/auth.js";
+import { HttpError } from "../lib/http.js";
 
-export interface AuthenticatedUser {
-  id: string;
-  email: string;
-  displayName: string;
-}
+export type { AuthenticatedUser };
 
 declare module "express-serve-static-core" {
   interface Request {
     user?: AuthenticatedUser;
+    /** The database session behind this request's cookie. */
+    authSession?: { id: string; expiresAt: Date };
   }
 }
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const token = req.cookies?.[AUTH_COOKIE_NAME];
-  const payload = typeof token === "string" ? verifyAuthToken(token) : null;
+export function sessionTokenFrom(req: Request): string | null {
+  const token: unknown = req.cookies?.[SESSION_COOKIE_NAME];
+  return typeof token === "string" && token.length > 0 ? token : null;
+}
 
-  if (!payload) {
-    res.status(401).json({ error: "Not authenticated." });
-    return;
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = sessionTokenFrom(req);
+  if (!token) throw new HttpError(401, "UNAUTHENTICATED", "Not authenticated.");
+
+  const result = await validateSession(token);
+  if (!result) {
+    // Expired or revoked: drop the dead cookie so the browser stops sending it.
+    clearSessionCookie(res);
+    throw new HttpError(401, "UNAUTHENTICATED", "Not authenticated.");
   }
+  if (result.renewed) setSessionCookie(res, token);
 
-  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-  if (!user) {
-    res.status(401).json({ error: "Not authenticated." });
-    return;
-  }
-
-  req.user = { id: user.id, email: user.email, displayName: user.displayName };
+  req.user = result.user;
+  req.authSession = { id: result.session.id, expiresAt: result.session.expiresAt };
   next();
 }
