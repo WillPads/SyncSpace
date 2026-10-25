@@ -1,0 +1,29 @@
+# Render Blueprint for the SyncSpace API server (free plan).
+# Render: New > Blueprint > pick this repo. It will ask for the values marked sync: false.
+services:
+  - type: web
+    # The name sets the URL: https://syncspace-willpads-api.onrender.com (the web app's
+    # SERVER_URL / NEXT_PUBLIC_WS_URL point there). "syncspace-api" was already taken.
+    name: syncspace-willpads-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false # Neon *pooled* connection string (host contains "-pooler"), see server/.env.example
+      - key: DIRECT_URL
+        sync: false # Neon *direct* connection string (same, without "-pooler"); used by prisma migrate deploy
+      - key: CLIENT_ORIGIN
+        sync: false # your Vercel URL, e.g. https://syncspace-willpads.vercel.app (comma-separate several)
+      - key: TRUST_PROXY
+        value: "1" # proxy hops in front of the server; decides req.ip for rate limits (see server/API.md)
+      - key: ANTHROPIC_API_KEY
+        sync: false # optional: Claude writes the quizzes; without it the built-in generator is used

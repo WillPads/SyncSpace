@@ -146,12 +146,11 @@ deferred to an explicitly-scoped pass.
   - Fixed root `tsconfig.json` to `exclude: ["node_modules", "server"]` — its `**/*.ts` include was
     sweeping the independent `server/` TypeScript project into the Next.js app's typecheck (and would
     have done the same during `next build`).
-  - Known follow-up: the new backend's auth cookie is `sameSite: "lax"`, and the frontend (`:3000`) and
-    backend (`:4000`) are different origins in dev. Lax cookies aren't sent on cross-site `fetch`/WebSocket
-    upgrade calls initiated from a page (only on top-level navigations), so the REST/WS calls from these
-    hooks may not actually carry the auth cookie once wired into a real page. Needs a decision when the
-    frontend migration happens: a dev proxy so both are same-origin, or token-based WS auth instead of the
-    cookie.
+  - ~~Known follow-up: `sameSite: "lax"` cookie across `:3000` / `:4000`.~~ Resolved in the frontend
+    migration below. Correction to the original note: `SameSite` is about *site* (scheme + registrable
+    domain), not origin, so `localhost:3000` → `localhost:4000` was never cross-site and Lax cookies would
+    have been sent. The real friction was CORS plus the cookie living on the API host. Both went away by
+    proxying `/backend/*` (REST and the WebSocket upgrade) through Next.js.
 
 ### Step 6 — Document upload & async quiz pipeline — ✅ done
 
@@ -195,3 +194,105 @@ done: the frontend still runs on the old anonymous in-memory system end-to-end (
 produced backend APIs plus, for WebRTC, unmounted reusable components) - migrating real pages onto the
 new backend (auth, room creation/join, RBAC-gated controls, video grid, upload/quiz UI, and resolving the
 cross-origin cookie question noted in Step 5) is its own scoped pass, not yet started.
+
+## Frontend migration + redesign — ✅ done
+
+Adopted the Claude Design mockup (`src/syncspace-frontend.zip`: a plain HTML/CSS/JS prototype of Overview,
+Sign in, Dashboard and Room) and moved the frontend off the old anonymous in-memory API onto `server/`.
+Asked and confirmed up front: migrate to the new backend in the same pass, and use the mockup's own CSS
+rather than re-expressing it in Tailwind.
+
+- **Styling:** vendored the mockup's `industry.css`, `theme.css` (Forest dark / Mist light) and `app.css`
+  into `src/styles/`; `additions.css` covers what the mockup didn't draw (quiz phase, session notes,
+  notices, empty states) and one real conflict: the mockup's `a:hover` colour outranks `.btn`, which would
+  have turned primary `<Link>` buttons green-on-green on hover. Fonts via `next/font` (Barlow / Barlow
+  Condensed); theme picked before first paint by an inline script, toggle persists `syncspace.mode`.
+  **Removed Tailwind** (`tailwindcss`, `@tailwindcss/postcss`, `postcss.config.mjs`). No new packages.
+- **Transport:** `next.config.ts` rewrites `/backend/*` to the server. Verified that Next proxies the
+  WebSocket upgrade too (both `next dev` and `next start`), so every browser call is same-origin.
+- **Screens:** `/` overview, `/login` (sign in + create account), `/dashboard` (your rooms with live clocks,
+  real stats, join by code, New room dialog), `/join/[code]` (invite links), `/room/[id]` (Ring / Grid /
+  Timeline views, people with live presence, host controls, invite toggle, remove / leave, tasks checklist,
+  session notes upload, ambient sound, and a quiz panel in `QUIZ_PHASE`).
+- **Data:** `lib/api.ts` (typed client), `hooks/useSession.ts` (SWR), `hooks/useLiveRoom.ts` (REST snapshot +
+  WebSocket with backoff; a 403 on reconnect is how a removed member finds out), `lib/timer.ts` (derives
+  the clock/rounds/segments; counts down from snapshot *receipt* time so device clock skew can't shift it).
+- **Mockup vs. reality:** the server has no long break, so a "set" is four focus/break pairs and rounds wrap.
+  Placeholder content was replaced with true content (overview card labelled "Preview", login panel explains
+  how rooms work, step 03 describes the quiz instead of chat). Not built, no server support: chat, focus
+  stats/streaks, scheduled sessions/RSVP, demo account, password reset.
+- **Server additions:** `GET /rooms` (rooms you belong to), `inviteEnabled` on create, `Participant.task` +
+  `PATCH /rooms/:roomId/task` (migration `add_participant_task`), members can remove themselves (leave).
+  Two WebSocket fixes found while building the client: a removed participant's socket is now closed (it
+  kept receiving room updates), and `presence:left` only fires when someone's *last* tab closes.
+- **Removed:** the old in-memory API (`src/app/api/rooms/**`, `lib/store.ts`, `identity.ts`, `api-client.ts`,
+  `http.ts`, `time.ts`, `hooks/useRoom.ts`) and the Tailwind components it used.
+- **Verified:** server 63/63 tests (new `room-membership.test.ts`, extra WS cases); frontend `tsc`, `eslint`
+  and `next build` clean; a 20-check end-to-end script through the proxy (register → create → join → live
+  WS sync and ticking → RBAC 403 → shared task → leave closes the socket → presence:left → every page
+  renders) passes under both `next start` and `next dev`. **Not verified visually**: no browser was
+  available in this session, so layout, theming and hydration haven't been eyeballed.
+- Still unmounted: the Step 5 WebRTC hook/components (now pointed at the proxy). The Grid view's tile face
+  is the natural slot for video.
+
+### Step 7 — Backend completion & audit fixes (2026-10-22) — ✅ done
+
+Driven by the backend audit (`docs/backend-audit-2026-10-22.md`); backend only, the frontend is untouched
+and its API contract is unchanged (every change is additive or a stricter rule the UI already follows).
+
+- **Database:** SQLite migrations archived; Postgres-only history (`20261017000000_init` + new
+  `20261022090000_server_sessions_and_integrity`, generated by Prisma from the migration history, which also
+  adds the `QuizAttempt -> Quiz` foreign key the hand-written init had missed). Every relation now has a
+  foreign key with cascade deletes, every foreign key column is indexed, `QuizResponse` is unique per
+  (attempt, question), participants/choices have explicit ordering (Postgres row order isn't stable).
+  `directUrl` added for Prisma Migrate on Neon. Verified: migrations apply to a fresh Postgres 17 with no drift.
+- **Auth:** JWTs replaced by server-side sessions (`Session` table, SHA-256-hashed random tokens, sliding
+  7-day expiry, rotation on login, `POST /auth/logout-all`). WebSocket tickets are single-use rows that
+  die with their session. Logout closes that session's sockets immediately (close code 4001).
+- **Errors:** Express 5 (async errors reach the error handler instead of crashing the process), one JSON
+  error shape `{ error, code }` everywhere, Prisma errors mapped (409 / 404 / 503), JSON 404, fail-fast env
+  validation (`src/config.ts`), graceful shutdown, `unhandledRejection` logged instead of fatal.
+- **Abuse limits:** per-account failed-login lockout, per-IP login/sign-up limits, per-user limits on room
+  creation, joins (stops code guessing), uploads (caps LLM spend) and socket tickets. Room codes from a CSPRNG.
+- **Rooms:** joins serialized with a row lock (10-person cap holds under 12 simultaneous joins), admin
+  removal bans (lift with `DELETE /rooms/:roomId/bans/:userId`), `DELETE /rooms/:roomId`, durations
+  capped at 4 h. Timer writes use a `version` column (optimistic concurrency), so concurrent host actions
+  can't both apply and the old tick-vs-reset lost update is gone.
+- **Real-time:** timer resolved in O(1) from the stored snapshot (the old capped loop could leave a negative
+  timer after ~1000 phase changes) and never written back on ticks; 1 s sync pulses served from an
+  in-memory snapshot (no DB query per tick); `serverTime`/`endsAt`/`version` in snapshots; `hello` frame and
+  `time:ping`/`time:pong` for clock sync; 64 KB frame cap, per-socket message budget, 30 s heartbeats, Origin
+  check on cookie auth, zod-validated client frames, `webrtc:peer-unavailable`, media flags cleared once
+  someone has been disconnected for 5 s (a grace period, so a page refresh can't race a fresh toggle),
+  `room:deleted`, slow-consumer protection. Typed protocol in `src/ws/protocol.ts`.
+- **Documents & quizzes:** **pdf-parse replaced by unpdf** (PDF.js 6) after finding that pdf-parse 1.x
+  returned empty text for every PDF after the first one in a process. Uploads are checked by their bytes
+  (PDF signature, no binary in text, UTF-16 supported), names kept in UTF-8, text sanitized for Postgres
+  (NUL bytes), files deleted after parsing, `document:update` events, `failureReason`, boot-time recovery
+  of interrupted jobs, two-job concurrency. Quizzes are written by Claude (`claude-opus-5-5`, structured
+  JSON output, server-side refusal fallback, 90 s timeout, 2 retries) when `ANTHROPIC_API_KEY` is set, with
+  the heuristic generator as the fallback for any failure; `Quiz.generatedBy` records which. Attempts only
+  in `QUIZ_PHASE`, every question exactly once, choices must belong to their question (the old endpoint
+  scored 5/2 for five copies of one right answer). New `GET .../quizzes/:quizId/results`.
+- **Dependencies:** `npm audit` clean (prod and dev) for both packages. Server: Express 5.2 (body-parser
+  2.4), multer 2.5, zod 4.6, Vitest 4.1.12, deepmerge-ts override for Prisma's config loader; Prisma
+  pinned to 6.19.3 for CLI/client parity; Node 22+. Web app: Next.js 15.5.28 (fixes the critical RCE
+  advisories below 15.5.28; no code changes), plus a PostCSS 8.5.30 override for Next's pinned copy,
+  verified to produce byte-identical CSS.
+- **Local development:** `npm run db:dev` runs a persistent local Postgres (`server/.dev-db/`) and
+  `.env.example` points at it, so local work never touches the production database. Render's service
+  is named `syncspace-willpads-api` (`syncspace-api.onrender.com` belongs to someone else), which fixes
+  the backend URL at `https://syncspace-willpads-api.onrender.com`.
+- **Tests:** `npm test` now runs on an embedded Postgres 17 (`embedded-postgres`, data in `server/.test-db/`)
+  and never reads `server/.env`. 156 tests across 18 files (was 63): sessions, error handling, rate limits,
+  bans/deletion/concurrency, the capacity race, quiz integrity, the pipeline with real PDFs and a fake LLM,
+  LLM response parsing, and a realtime protocol suite (tickets, origin, heartbeats, floods, revocation).
+  The WebSocket tests wait on conditions instead of fixed sleeps. Passed 3 runs in a row; `tsc` clean for
+  `src/` and `tests/`. A production smoke run of the built server (`npm start` with
+  `NODE_ENV=production` against fresh Postgres) passed 19/19, and a full-stack run of the built web app
+  (`next start`) against the built server, with every call through the `/backend` rewrite (pages, cookie
+  through the proxy, WebSocket through the proxy, uploads, quiz, kick, logout), passed 27/27.
+- **Decisions:** no CRDT - every piece of shared state has one authoritative writer (the server) and the
+  timer is a state machine whose transitions must be rejected, not merged; versioned server writes are the
+  conflict resolution. Mesh WebRTC signaling kept (fine for 10 people); an SFU is out of scope.
+  `inviteEnabled` keeps its name because the web app reads it. Full API reference: `server/API.md`.
