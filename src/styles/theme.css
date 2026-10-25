@@ -1,0 +1,86 @@
+/* SyncSpace themes layered over the Industry design system (industry.css).
+   Forest is dark mode, Mist is light mode. Only tokens change here. */
+
+:root,[data-theme="forest"]{
+  --color-bg:oklch(0.235 0.028 162);
+  --color-surface:oklch(0.27 0.03 162);
+  --color-text:oklch(0.93 0.02 150);
+  --color-divider:color-mix(in oklch, oklch(0.93 0.02 150) 18%, transparent);
+  --color-accent:oklch(0.78 0.1 155);
+  --color-accent-2:oklch(0.78 0.1 155);
+  --color-accent-100:oklch(0.3 0.04 160);
+  --color-accent-200:oklch(0.35 0.05 160);
+  --color-accent-300:oklch(0.45 0.06 158);
+  --color-accent-400:oklch(0.6 0.08 156);
+  --color-accent-500:oklch(0.7 0.09 155);
+  --color-accent-600:oklch(0.72 0.1 155);
+  --color-accent-700:oklch(0.83 0.08 155);
+  --color-accent-800:oklch(0.88 0.06 152);
+  --color-accent-900:oklch(0.95 0.03 150);
+  --color-accent-2-100:oklch(0.3 0.04 160);
+  --color-accent-2-200:oklch(0.35 0.05 160);
+  --color-accent-2-300:oklch(0.45 0.06 158);
+  --color-accent-2-400:oklch(0.6 0.08 156);
+  --color-accent-2-500:oklch(0.7 0.09 155);
+  --color-accent-2-600:oklch(0.72 0.1 155);
+  --color-accent-2-700:oklch(0.83 0.08 155);
+  --color-accent-2-800:oklch(0.88 0.06 152);
+  --color-accent-2-900:oklch(0.95 0.03 150);
+  --color-neutral-100:oklch(0.27 0.02 162);
+  --color-neutral-200:oklch(0.2 0.022 162);
+  --color-neutral-300:oklch(0.36 0.02 162);
+  --color-neutral-400:oklch(0.45 0.018 160);
+  --color-neutral-500:oklch(0.55 0.016 158);
+  --color-neutral-600:oklch(0.64 0.015 155);
+  --color-neutral-700:oklch(0.74 0.014 155);
+  --color-neutral-800:oklch(0.84 0.012 152);
+  --color-neutral-900:oklch(0.92 0.01 150);
+  --shadow-lg:0 12px 40px rgb(0 0 0 / .45);
+  --panel-bg:oklch(0.19 0.03 162);
+  --panel-fg:oklch(0.93 0.02 150);
+  --panel-sub:oklch(0.78 0.1 155);
+  color-scheme:dark;
+}
+
+[data-theme="mist"]{
+  --color-bg:oklch(0.968 0.007 155);
+  --color-surface:oklch(0.935 0.01 155);
+  --color-text:oklch(0.22 0.015 160);
+  --color-divider:color-mix(in oklch, oklch(0.22 0.015 160) 16%, transparent);
+  --color-accent:oklch(0.56 0.085 158);
+  --color-accent-2:oklch(0.56 0.085 158);
+  --color-accent-100:oklch(0.97 0.022 158);
+  --color-accent-200:oklch(0.93 0.04 158);
+  --color-accent-300:oklch(0.86 0.065 158);
+  --color-accent-400:oklch(0.77 0.085 158);
+  --color-accent-500:oklch(0.67 0.09 158);
+  --color-accent-600:oklch(0.5 0.085 158);
+  --color-accent-700:oklch(0.45 0.075 160);
+  --color-accent-800:oklch(0.36 0.06 160);
+  --color-accent-900:oklch(0.27 0.045 162);
+  --color-accent-2-100:oklch(0.97 0.022 158);
+  --color-accent-2-200:oklch(0.93 0.04 158);
+  --color-accent-2-300:oklch(0.86 0.065 158);
+  --color-accent-2-400:oklch(0.77 0.085 158);
+  --color-accent-2-500:oklch(0.67 0.09 158);
+  --color-accent-2-600:oklch(0.5 0.085 158);
+  --color-accent-2-700:oklch(0.45 0.075 160);
+  --color-accent-2-800:oklch(0.36 0.06 160);
+  --color-accent-2-900:oklch(0.27 0.045 162);
+  --color-neutral-100:oklch(0.975 0.005 155);
+  --color-neutral-200:oklch(0.925 0.008 155);
+  --color-neutral-300:oklch(0.87 0.01 155);
+  --color-neutral-400:oklch(0.78 0.01 155);
+  --color-neutral-500:oklch(0.68 0.01 155);
+  --color-neutral-600:oklch(0.58 0.01 155);
+  --color-neutral-700:oklch(0.48 0.012 155);
+  --color-neutral-800:oklch(0.38 0.012 155);
+  --color-neutral-900:oklch(0.29 0.012 155);
+  --shadow-lg:0 12px 32px rgb(0 0 0 / .18);
+  --panel-bg:var(--color-accent-900);
+  --panel-fg:var(--color-bg);
+  --panel-sub:var(--color-accent-300);
+  color-scheme:light;
+}
+
+[data-theme="forest"] .dialog-backdrop{background:rgb(0 0 0 / .55)}

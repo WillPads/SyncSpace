@@ -1,0 +1,328 @@
+/* Additions beyond the Claude Design mockup (industry.css, theme.css and app.css are the
+   mockup's files). This covers the Next.js wiring and the screens the mockup never drew:
+   notices, empty states, session notes, ambient sound and the quiz phase. Tokens only. */
+
+/* Fonts come from next/font (app/layout.tsx), which registers hashed family names. */
+:root {
+  --font-heading: var(--font-barlow-condensed), "Barlow Condensed", system-ui, sans-serif;
+  --font-body: var(--font-barlow), "Barlow", system-ui, sans-serif;
+}
+
+/* The mockup rendered buttons as <button>; ours are often Next <Link>s. Its a / a:hover
+   colours outrank .btn, which would turn primary links green-on-green on hover. */
+a.btn,
+a.btn:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+a.btn-primary,
+a.btn-primary:hover {
+  color: var(--color-bg);
+}
+a.btn-ghost,
+a.btn-ghost:hover {
+  color: var(--color-accent);
+}
+
+/* The wordmark is a link here, not a span; keep the mockup's size and colour. */
+.nav .brand-link {
+  font-size: 18px;
+}
+.nav .brand-link:hover {
+  color: inherit;
+}
+.nav-crumb {
+  font-size: 14px;
+  color: var(--color-accent);
+}
+
+/* — form bits — */
+.field-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.form-err {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+  color: var(--color-accent-800);
+  border: 1px solid var(--color-accent-800);
+  background: color-mix(in oklch, var(--color-accent-800) 8%, transparent);
+}
+.link-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-accent-700);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link-btn:hover {
+  color: var(--color-accent-800);
+}
+.link-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* — notices, loading and empty states — */
+.screen-center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--space-4);
+}
+.notice-card {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+.notice-card h3,
+.notice-card p {
+  margin: 0;
+}
+.notice-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.spin {
+  color: var(--color-accent);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 2.4s;
+  }
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px dashed var(--color-divider);
+}
+.empty p {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 14px;
+  color: var(--color-neutral-800);
+}
+
+/* — overview — */
+.preview-note {
+  margin: 0;
+}
+
+/* — room — */
+.sync-dot.is-offline {
+  background: var(--color-neutral-500);
+}
+.sync-line b {
+  font-weight: 500;
+  color: var(--color-text);
+}
+.round-dots span,
+.tile-dots span {
+  background: var(--color-neutral-300);
+}
+.round-dots span[data-state="done"],
+.tile-dots span[data-state="done"] {
+  background: var(--color-accent);
+}
+.round-dots span[data-state="now"],
+.tile-dots span[data-state="now"] {
+  background: var(--color-accent-300);
+}
+.strip-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tl-task {
+  color: var(--color-neutral-800);
+}
+.tl-note {
+  padding-bottom: var(--space-3);
+}
+.host-mark {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-neutral-700);
+}
+.person-remove {
+  width: auto;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+.person-remove:hover {
+  color: var(--color-accent-800);
+}
+
+/* — side cards — */
+.side-count {
+  flex: none;
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+.side-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+.side-link {
+  align-self: flex-start;
+  font-size: 13px;
+}
+.icon-bold {
+  stroke-width: 2.5;
+}
+.doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.doc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.doc-row .ellipsis {
+  flex: 1;
+}
+.sound-list {
+  display: flex;
+  flex-direction: column;
+}
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+.sound-row:last-child {
+  border-bottom: 0;
+}
+.sound-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.sound-text b {
+  font-weight: 500;
+  font-size: 14px;
+}
+.sound-text span {
+  font-size: 12px;
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sound-vol {
+  width: 72px;
+  flex: none;
+  accent-color: var(--color-accent);
+}
+
+/* — quiz phase — */
+.quiz-head {
+  padding: var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.quiz-head-copy {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.quiz-head h3,
+.quiz-head p,
+.quiz h3 {
+  margin: 0;
+}
+.quiz-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-6);
+}
+.quiz-pick {
+  padding: var(--space-4);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.quiz-pick:hover {
+  border-color: var(--color-accent);
+}
+.quiz {
+  gap: var(--space-6);
+}
+.quiz-q {
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.quiz-prompt {
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.quiz-prompt .step-n {
+  margin-right: 6px;
+}
+.quiz-choice {
+  padding: 6px 8px;
+  border: 1px solid transparent;
+}
+.quiz-choice:has(input:disabled) {
+  cursor: default;
+}
+.quiz-choice.is-correct {
+  border-color: var(--color-accent);
+  background: var(--color-accent-100);
+}
+.quiz-choice.is-wrong {
+  color: var(--color-neutral-600);
+  text-decoration: line-through;
+}
+.quiz-score {
+  font: 600 20px var(--font-heading);
+  font-variant-numeric: tabular-nums;
+}
+.quiz-actions {
+  justify-content: flex-start;
+}

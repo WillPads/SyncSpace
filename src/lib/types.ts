@@ -1,41 +1,72 @@
-export type SessionMode = "focus" | "break";
+// Shapes returned by the SyncSpace server (server/src). Dates arrive as ISO strings.
 
-export type ParticipantStatus = "focused" | "on-break" | "idle" | "away";
+export type Role = "ADMIN" | "MEMBER";
+export type SessionState = "IDLE" | "POMODORO_ACTIVE" | "BREAK" | "QUIZ_PHASE";
+export type SessionAction = "start" | "pause" | "resume" | "skip" | "endSession" | "reset";
+export type DocumentStatus = "PENDING" | "PARSING" | "READY" | "FAILED";
 
-export interface TimerState {
-  mode: SessionMode;
-  durationSeconds: number;
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface Session {
+  state: SessionState;
+  focusDurationSec: number;
+  breakDurationSec: number;
   remainingSeconds: number;
   isRunning: boolean;
-  updatedAt: number;
+  updatedAt: string;
   sessionsCompleted: number;
 }
 
 export interface Participant {
-  id: string;
-  name: string;
-  colorIndex: number;
-  status: ParticipantStatus;
+  userId: string;
+  displayName: string;
+  role: Role;
   task: string;
-  isHost: boolean;
-  joinedAt: number;
-  lastSeenAt: number;
+  joinedAt: string;
+  cameraOn: boolean;
+  micOn: boolean;
 }
 
 export interface Room {
   id: string;
+  code: string;
   name: string;
-  createdAt: number;
-  hostId: string;
-  timer: TimerState;
+  adminId: string;
+  inviteEnabled: boolean;
+  capacity: number;
+  session: Session | null;
   participants: Participant[];
 }
 
-export interface RoomPayload {
-  room: Room;
-  participantId: string;
+export interface RoomDocument {
+  id: string;
+  filename: string;
+  mimeType: string;
+  status: DocumentStatus;
+  createdAt: string;
 }
 
-export interface ApiError {
-  error: string;
+export interface QuizSummary {
+  id: string;
+  title: string;
+  documentId: string;
+  createdAt: string;
+  questionCount: number;
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  questions: { id: string; prompt: string; choices: { id: string; text: string }[] }[];
+}
+
+export interface QuizResult {
+  attemptId: string;
+  score: number;
+  total: number;
+  correctChoices: Record<string, string | undefined>;
 }

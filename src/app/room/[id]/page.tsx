@@ -1,6 +1,10 @@
-import { RoomView } from "@/components/room/RoomView";
+"use client";
 
-export default async function RoomPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return <RoomView roomId={id} />;
+import { use } from "react";
+import { RequireAuth } from "@/components/RequireAuth";
+import { RoomScreen } from "@/components/room/RoomScreen";
+
+export default function RoomPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return <RequireAuth>{(user) => <RoomScreen roomId={id} user={user} />}</RequireAuth>;
 }

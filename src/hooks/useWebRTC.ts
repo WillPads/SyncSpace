@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getServerWsUrl, patchRoomMedia } from "@/lib/serverConfig";
+import { openRoomSocket, patchRoomMedia } from "@/lib/serverConfig";
 
 const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
@@ -142,7 +142,7 @@ export function useWebRTC(roomId: string | null, currentUserId: string | null): 
 
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
+      .then(async (stream) => {
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
@@ -150,7 +150,11 @@ export function useWebRTC(roomId: string | null, currentUserId: string | null): 
         localStreamRef.current = stream;
         setLocalStream(stream);
 
-        const ws = new WebSocket(`${getServerWsUrl()}/ws?roomId=${encodeURIComponent(roomId)}`);
+        const ws = await openRoomSocket(roomId);
+        if (cancelled) {
+          ws.close();
+          return;
+        }
         wsRef.current = ws;
 
         ws.onopen = () => setConnectionState("connected");
