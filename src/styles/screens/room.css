@@ -272,7 +272,6 @@
   gap: var(--space-xs);
 }
 .rm-clock {
-  font-family: var(--font-mono);
   font-weight: 700;
   font-size: clamp(36px, 22cqw, 52px);
   line-height: 1.1;
@@ -379,7 +378,6 @@
   min-width: 0;
 }
 .rm-strip-time {
-  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 56px;
   line-height: 1.1;
@@ -475,7 +473,6 @@
   min-width: 0;
 }
 .rm-tl-time {
-  font-family: var(--font-mono);
   font-weight: 700;
   font-size: clamp(64px, 11vw, 112px);
   line-height: 1.05;

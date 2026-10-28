@@ -1,6 +1,5 @@
-/* Login / create-account screen (app/login/page.tsx). Layout and sizes follow the mockup's
-   #screen-auth section; shared primitives (tiles, buttons, inputs, seg) and the dot/ring
-   backdrop are in base.css. Flat fills only. */
+/* Login / create-account screen (app/login/page.tsx): one centred card under the top bar.
+   Shared primitives (tiles, buttons, inputs, seg) are in base.css. Flat fills only, no shadows. */
 
 /* — top bar — */
 .auth-bar {
@@ -26,102 +25,33 @@
   height: 46px;
 }
 
-/* — 12-column bento grid — */
-.auth-grid {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--bento-gap);
-  align-content: start;
-  align-items: stretch;
-  width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: var(--space-lg);
-}
-
-.auth-hero {
-  grid-column: 1 / 8;
-  grid-row: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-md);
-  padding: var(--space-xl);
-}
+/* Small caps label above a heading (used by the signed-out screen). */
 .eyebrow {
-  /* Body font, not mono: mono is reserved for timers and room codes. */
   font: 500 16px/1.4 var(--font-body);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent-text);
 }
-.auth-hero h1 {
-  max-width: 15ch;
-  font: var(--text-heading-xl);
-  font-size: 56px;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-}
 
-.auth-lede {
-  grid-column: 1 / 8;
-  grid-row: 2;
-  padding: var(--space-lg) var(--space-xl);
-  color: var(--color-muted);
-  font-size: 19px;
-  line-height: 1.55;
-}
-
-.auth-feats {
-  grid-column: 1 / 8;
-  grid-row: 3;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--bento-gap);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.auth-feats li {
+/* — the page: card centred in the space under the bar — */
+.auth-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-}
-.auth-ico {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  width: 48px;
-  height: 48px;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  color: var(--accent-text);
-}
-.auth-feats h3 {
-  margin-bottom: var(--space-xs);
-  font: var(--text-heading-md);
-  font-size: 19px;
-  letter-spacing: normal;
-}
-.auth-feats p {
-  color: var(--color-muted);
-  font-size: 16px;
-  line-height: 1.5;
+  width: 100%;
+  padding: var(--space-lg);
 }
 
 /* — the form tile — */
 .auth-card {
-  grid-column: 8 / 13;
-  grid-row: 1 / 4;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: var(--space-xl);
+  width: 100%;
+  max-width: 520px;
   padding: var(--space-xl);
 }
 .auth-card .seg button {
@@ -159,6 +89,12 @@
   min-height: 60px;
   font-size: 19px;
 }
+.auth-card .form-err p + p {
+  margin-top: var(--space-xs);
+}
+.auth-card .form-err-next .link-btn {
+  min-height: 44px;
+}
 .auth-card .login-links {
   display: flex;
   flex-wrap: wrap;
@@ -168,7 +104,7 @@
   font-size: 15px;
 }
 
-/* — tablet and phone: one column, form right after the headline — */
+/* — tablet and phone — */
 @media (max-width: 1000px) {
   .auth-bar {
     padding: var(--space-md);
@@ -179,47 +115,29 @@
   .auth-bar .brand-mark svg {
     height: 38px;
   }
-  .auth-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .auth-main {
     padding: var(--space-md);
   }
-  .auth-hero,
-  .auth-card,
-  .auth-lede,
-  .auth-feats {
-    grid-column: 1;
-    grid-row: auto;
+}
+@media (max-width: 480px) {
+  /* The overview bar also holds a theme toggle and a button, so the wordmark has to shrink to fit 375px. */
+  .auth-bar .brand-btn {
+    gap: var(--space-sm);
+    font-size: 22px;
   }
-  .auth-hero h1 {
-    font-size: 40px;
-  }
-  .auth-feats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .auth-feats li {
-    flex-direction: row;
-    align-items: flex-start;
+  .auth-bar .brand-mark svg {
+    height: 32px;
   }
 }
 @media (max-width: 640px) {
-  .auth-hero,
-  .auth-card {
-    padding: var(--space-lg) var(--space-md);
-  }
-  .auth-hero h1 {
-    font-size: 34px;
-  }
   .auth-card {
     gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-md);
   }
   .auth-card h2 {
     font-size: 30px;
   }
   .auth-sub {
     font-size: 16px;
-  }
-  .auth-lede {
-    padding: var(--space-md);
-    font-size: 17px;
   }
 }

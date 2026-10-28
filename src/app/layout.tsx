@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import "@/styles/industry.css";
 import "@/styles/tokens.css";
@@ -14,17 +14,12 @@ import "@/styles/screens/settings.css";
 import "@/styles/screens/signedout.css";
 import "@/styles/screens/overview.css";
 
-// Space Grotesk is the UI font; JetBrains Mono is only for timer digits and room codes.
-// additions.css maps these variables onto --font-heading / --font-body / --font-mono.
+// Space Grotesk is the only font in the app (timers and room codes use it too, with tabular digits).
+// additions.css maps this variable onto --font-heading / --font-body.
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--nf-space-grotesk",
-});
-const jetBrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--nf-jetbrains-mono",
 });
 
 // Picks the theme before first paint so there's no flash of the wrong mode.
@@ -42,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       data-theme="forest"
-      className={`${spaceGrotesk.variable} ${jetBrainsMono.variable}`}
+      className={spaceGrotesk.variable}
       suppressHydrationWarning
     >
       <head>

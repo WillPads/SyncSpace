@@ -61,7 +61,7 @@ export function RoomHead({
           </span>
           <span className="chip">Host {host}</span>
           <span className="chip">
-            Room code <b className="mono">{room.code}</b>
+            Room code <b className="code-text">{room.code}</b>
           </span>
         </div>
       </div>

@@ -27,6 +27,11 @@
   --fx-ring: rgb(60 104 59 / 0.22);
 }
 
+/* Browsers give buttons and form controls their own system font (Arial); make them use Space Grotesk. */
+.redesign :is(button, input, select, textarea) {
+  font-family: inherit;
+}
+
 /* Industry's heading and paragraph margins/sizes are for the old layout; the mockup sets its own. */
 .redesign :is(h1, h2, h3, p) {
   margin: 0;
@@ -295,9 +300,10 @@
   color: var(--accent-text);
 }
 
-/* Room codes are one of the two places the mono font is allowed (the other is timers). */
-.redesign .mono {
-  font: var(--text-code-mono);
+/* Room codes: same font as everything else, with equal-width digits. */
+.redesign .code-text {
+  font: var(--text-code);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Secondary text, and the old "muted" helper. */

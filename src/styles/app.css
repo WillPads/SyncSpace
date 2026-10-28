@@ -22,7 +22,7 @@ a:hover{color:var(--color-accent-800)}
 .bar{height:4px;background:var(--color-neutral-300)}
 .bar>div{height:100%;background:var(--color-accent)}
 .code-join{display:flex}
-.code-join .input{width:140px;letter-spacing:.08em;font-family:var(--font-mono)}
+.code-join .input{width:140px;letter-spacing:.08em;font-variant-numeric:tabular-nums}
 .code-join .btn{border-left:0}
 
 /* — login — */

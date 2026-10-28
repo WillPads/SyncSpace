@@ -13,11 +13,17 @@ import type {
 // same-origin and the auth cookie rides along without any CORS setup.
 export const API_BASE = "/backend";
 
+/** Shown when our API didn't answer: the network is down, or a proxy/host page came back instead of JSON. */
+export const UNREACHABLE_MESSAGE = "Can't reach the SyncSpace server. Try again in a minute.";
+
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** The server's stable error code (e.g. "INVALID_CREDENTIALS"); undefined when the server never answered. */
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
     this.name = "ApiError";
   }
 }
@@ -31,15 +37,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers: init.body && !isForm ? { "Content-Type": "application/json", ...init.headers } : init.headers,
     });
   } catch {
-    throw new ApiError("Can't reach the SyncSpace server.", 0);
+    throw new ApiError(UNREACHABLE_MESSAGE, 0);
   }
 
   if (res.status === 204) return undefined as T;
-  const data = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
+  const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string }) | null;
   if (!res.ok) {
-    // The proxy answers with a non-JSON 5xx when the server process isn't running.
-    const message = data?.error ?? (res.status >= 500 ? "Can't reach the SyncSpace server." : "Something went wrong.");
-    throw new ApiError(message, res.status);
+    // Every error from our API is JSON with an `error` sentence. A body without one (an HTML 404 or 5xx
+    // from the host or proxy) means the request never reached our server, so say that instead.
+    throw new ApiError(data?.error ?? UNREACHABLE_MESSAGE, res.status, data?.code);
   }
   return data as T;
 }

@@ -7,8 +7,6 @@ import { Icon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useSession } from "@/hooks/useSession";
 
-const NEW_ROOM_PATH = "/dashboard?new=1";
-
 /** Top bar of the overview page; it shares the login screen's bar styles (.auth-bar in login.css). */
 export function OverviewNav() {
   const { user } = useSession();
@@ -19,9 +17,6 @@ export function OverviewNav() {
         SyncSpace
       </Link>
       <div className="ovw-nav-actions">
-        <a className="ovw-how" href="#how">
-          How it works
-        </a>
         <ThemeToggle />
         <Link className="btn btn-secondary" href={user ? "/dashboard" : "/login"}>
           {user ? "Dashboard" : "Sign in"}
@@ -31,13 +26,26 @@ export function OverviewNav() {
   );
 }
 
-export function OpenRoomButton() {
+/** The two buttons under the welcome text. Someone who is already signed in just gets the dashboard. */
+export function OverviewHeroActions() {
   const { user } = useSession();
-  const href = user ? NEW_ROOM_PATH : `/login?next=${encodeURIComponent(NEW_ROOM_PATH)}`;
   return (
-    <Link className="btn btn-primary btn-lg" href={href}>
-      Open a room
-      <Icon icon={ArrowRight} />
-    </Link>
+    <div className="ovw-actions">
+      {user ? (
+        <Link className="btn btn-primary btn-lg" href="/dashboard">
+          Go to dashboard
+          <Icon icon={ArrowRight} />
+        </Link>
+      ) : (
+        <>
+          <Link className="btn btn-primary btn-lg" href="/login?mode=register">
+            Create account
+          </Link>
+          <Link className="btn btn-secondary btn-lg" href="/login">
+            Sign in
+          </Link>
+        </>
+      )}
+    </div>
   );
 }

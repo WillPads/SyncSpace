@@ -6,7 +6,6 @@
 :root {
   --font-heading: var(--nf-space-grotesk), "Space Grotesk", system-ui, sans-serif;
   --font-body: var(--nf-space-grotesk), "Space Grotesk", system-ui, sans-serif;
-  --font-mono: var(--nf-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace; /* timer digits and room codes only */
 }
 
 /* The mockup rendered buttons as <button>; ours are often Next <Link>s. Its a / a:hover

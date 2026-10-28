@@ -76,8 +76,9 @@
   flex: 1;
   width: auto;
   min-width: 0;
-  font: var(--text-code-mono);
+  font: var(--text-code);
   font-size: 16px;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.08em;
 }
 .dash-join .code-join .input::placeholder {
@@ -165,7 +166,8 @@
 }
 .room-code {
   color: var(--color-text);
-  font: var(--text-code-mono);
+  font: var(--text-code);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;
 }
 .room-name {
@@ -179,7 +181,7 @@
   gap: var(--space-xs) var(--space-sm);
 }
 .room-clock {
-  font: 700 32px/1 var(--font-mono);
+  font: 700 32px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
 }
 .room-card .bar {
@@ -518,7 +520,8 @@
   text-transform: uppercase;
 }
 .datebox-n {
-  font: 700 20px/1.2 var(--font-mono);
+  font: 700 20px/1.2 var(--font-body);
+  font-variant-numeric: tabular-nums;
 }
 
 /* — tablet and phone — */

@@ -2,33 +2,15 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileText, type LucideIcon, Timer, Users } from "lucide-react";
 import { type FormEvent, type InputHTMLAttributes, Suspense, useEffect, useState } from "react";
-import { AppBackdrop } from "@/components/ui/Backdrop";
 import { BrandMark } from "@/components/ui/Brand";
-import { Icon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useSession } from "@/hooks/useSession";
-import { errorMessage } from "@/lib/api";
+import { ApiError, errorMessage } from "@/lib/api";
 
 type Mode = "signin" | "register";
 
 const MIN_PASSWORD = 8;
-
-// The three feature tiles under the headline. Each line describes something the app really does.
-const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: Timer, title: "One timer for the whole room", text: "Focus and break rounds stay in step for everyone inside." },
-  {
-    icon: Users,
-    title: "Invite with a room code",
-    text: "Share the code or an invite link. The host can turn invites off or remove someone at any time.",
-  },
-  {
-    icon: FileText,
-    title: "Quizzes from your notes",
-    text: "Upload a .pdf, .txt or .md file, then take a short quiz on it when the host ends the session.",
-  },
-];
 
 // Only follow same-site paths, so ?next= can't bounce people to another site.
 function safeNext(next: string | null): string {
@@ -56,6 +38,9 @@ function LoginScreen() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+  // True when the server said "wrong email or password" (code INVALID_CREDENTIALS). The message stays
+  // generic on purpose so it never reveals whether an account exists; we only offer a way to sign up.
+  const [badCredentials, setBadCredentials] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -66,6 +51,7 @@ function LoginScreen() {
     setMode(to);
     setErrors({});
     setFormError(null);
+    setBadCredentials(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,6 +68,7 @@ function LoginScreen() {
     };
     setErrors(found);
     setFormError(null);
+    setBadCredentials(false);
     const firstInvalid = found.name ? "login-name" : found.email ? "login-email" : found.password ? "login-pw" : null;
     if (firstInvalid) {
       document.getElementById(firstInvalid)?.focus();
@@ -95,6 +82,7 @@ function LoginScreen() {
       // The effect above redirects once the session updates.
     } catch (err) {
       setFormError(errorMessage(err));
+      setBadCredentials(mode === "signin" && err instanceof ApiError && err.code === "INVALID_CREDENTIALS");
       setSubmitting(false);
     }
   }
@@ -103,7 +91,6 @@ function LoginScreen() {
 
   return (
     <div className="redesign app-screen auth-screen">
-      <AppBackdrop />
       <header className="auth-bar">
         <Link href="/" className="brand-btn">
           <BrandMark />
@@ -112,12 +99,7 @@ function LoginScreen() {
         <ThemeToggle />
       </header>
 
-      <main className="auth-grid">
-        <section className="tile tile-tint auth-hero" aria-labelledby="auth-headline">
-          <p className="eyebrow">Co-working rooms for students</p>
-          <h1 id="auth-headline">Study together, stay in sync.</h1>
-        </section>
-
+      <main className="auth-main">
         <section className="tile auth-card" aria-labelledby="login-title">
           <div className="seg" role="group" aria-label="Account">
             <button type="button" aria-pressed={isRegister} onClick={() => switchMode("register")}>
@@ -136,9 +118,25 @@ function LoginScreen() {
 
           <form className="auth-form" noValidate onSubmit={handleSubmit}>
             {formError && (
-              <p className="form-err" role="alert">
-                {formError}
-              </p>
+              <div className="form-err" role="alert">
+                <p>{formError}</p>
+                {badCredentials && (
+                  <p className="form-err-next">
+                    No account yet?{" "}
+                    <button
+                      className="link-btn"
+                      type="button"
+                      onClick={() => {
+                        switchMode("register");
+                        // The button disappears with the error, so hand focus to the next thing to fill in.
+                        requestAnimationFrame(() => document.getElementById("login-name")?.focus());
+                      }}
+                    >
+                      Create an account
+                    </button>
+                  </p>
+                )}
+              </div>
             )}
 
             {isRegister && (
@@ -160,12 +158,12 @@ function LoginScreen() {
             )}
             <Field
               id="login-email"
-              label={isRegister ? "School or personal email" : "Email"}
+              label="Email"
               error={errors.email}
               input={{
                 type: "email",
                 autoComplete: "email",
-                placeholder: "you@school.edu",
+                placeholder: "you@example.com",
                 value: email,
                 onChange: (e) => {
                   setEmail(e.target.value);
@@ -211,25 +209,6 @@ function LoginScreen() {
             </div>
           </form>
         </section>
-
-        <p className="tile auth-lede">
-          SyncSpace is a co-working space with a shared Pomodoro timer. Join friends in a room, focus in rounds, and
-          when the host ends the session, take a short quiz built from your own notes.
-        </p>
-
-        <ul className="auth-feats">
-          {FEATURES.map((f) => (
-            <li className="tile" key={f.title}>
-              <span className="auth-ico">
-                <Icon icon={f.icon} size={26} />
-              </span>
-              <div>
-                <h3>{f.title}</h3>
-                <p>{f.text}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
       </main>
     </div>
   );
