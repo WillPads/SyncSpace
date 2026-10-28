@@ -2,6 +2,10 @@
 
 Co-working rooms that share one Pomodoro clock. Create a room, share the code, and everyone inside focuses and breaks together, with a live room chat. When the host ends the session, the room gets a quiz generated from the notes people uploaded. Your dashboard keeps a 5-line notepad, a quick note, your recent files and the sessions your rooms have scheduled.
 
+**Live demo:** https://sync-space-taupe.vercel.app
+
+The server runs on a free plan and sleeps after 15 minutes without visitors, so the first request can take up to a minute. If the page says it can't reach the server, wait a moment and reload.
+
 ## Stack
 
 - **Frontend** (repo root): Next.js 15 (App Router) + TypeScript, built from the SyncSpace design mockup in [`docs/design/`](docs/design/): a flat bento-box layout with dark and light themes, set entirely in Space Grotesk (timers use same-width digits so they don't jitter). Plain CSS, no Tailwind. Data fetching uses SWR.
