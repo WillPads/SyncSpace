@@ -1,86 +1,119 @@
 /* SyncSpace themes layered over the Industry design system (industry.css).
-   Forest is dark mode, Mist is light mode. Only tokens change here. */
+   Forest is dark mode, Mist is light mode. Only tokens change here.
+   Forest points the existing --color-* names at the brand palette (tokens.css), so every
+   component picks up the new look without edits. Mist is derived from the same palette the
+   way the mockup's day mode (.app[data-ui="day"]) does it. Flat colours only, no gradients. */
 
 :root,[data-theme="forest"]{
-  --color-bg:oklch(0.235 0.028 162);
-  --color-surface:oklch(0.27 0.03 162);
-  --color-text:oklch(0.93 0.02 150);
-  --color-divider:color-mix(in oklch, oklch(0.93 0.02 150) 18%, transparent);
-  --color-accent:oklch(0.78 0.1 155);
-  --color-accent-2:oklch(0.78 0.1 155);
-  --color-accent-100:oklch(0.3 0.04 160);
-  --color-accent-200:oklch(0.35 0.05 160);
-  --color-accent-300:oklch(0.45 0.06 158);
-  --color-accent-400:oklch(0.6 0.08 156);
-  --color-accent-500:oklch(0.7 0.09 155);
-  --color-accent-600:oklch(0.72 0.1 155);
-  --color-accent-700:oklch(0.83 0.08 155);
-  --color-accent-800:oklch(0.88 0.06 152);
-  --color-accent-900:oklch(0.95 0.03 150);
-  --color-accent-2-100:oklch(0.3 0.04 160);
-  --color-accent-2-200:oklch(0.35 0.05 160);
-  --color-accent-2-300:oklch(0.45 0.06 158);
-  --color-accent-2-400:oklch(0.6 0.08 156);
-  --color-accent-2-500:oklch(0.7 0.09 155);
-  --color-accent-2-600:oklch(0.72 0.1 155);
-  --color-accent-2-700:oklch(0.83 0.08 155);
-  --color-accent-2-800:oklch(0.88 0.06 152);
-  --color-accent-2-900:oklch(0.95 0.03 150);
-  --color-neutral-100:oklch(0.27 0.02 162);
-  --color-neutral-200:oklch(0.2 0.022 162);
-  --color-neutral-300:oklch(0.36 0.02 162);
-  --color-neutral-400:oklch(0.45 0.018 160);
-  --color-neutral-500:oklch(0.55 0.016 158);
-  --color-neutral-600:oklch(0.64 0.015 155);
-  --color-neutral-700:oklch(0.74 0.014 155);
-  --color-neutral-800:oklch(0.84 0.012 152);
-  --color-neutral-900:oklch(0.92 0.01 150);
+  --color-bg:var(--brand-background-bg-dark);
+  --color-surface:var(--brand-surface-card-dark);
+  --color-text:var(--brand-text-primary);
+  --color-divider:rgb(156 163 175 / .22);
+  --color-accent:var(--brand-primary-hover);
+  --color-accent-2:var(--color-accent);
+  /* Accent ramp: dark tints of the green at 100-200, brand green at 300 and 500, light tints
+     towards white at 600-900 (so 700/800 stay readable as text on the dark background). */
+  --color-accent-100:color-mix(in srgb, var(--brand-primary-hover) 14%, var(--brand-surface-card-dark));
+  --color-accent-200:color-mix(in srgb, var(--brand-primary-hover) 24%, var(--brand-surface-card-dark));
+  --color-accent-300:var(--brand-primary);
+  --color-accent-400:color-mix(in srgb, var(--brand-primary-hover) 70%, var(--brand-primary));
+  --color-accent-500:var(--brand-primary-hover);
+  --color-accent-600:color-mix(in srgb, var(--brand-primary-hover) 85%, var(--brand-text-primary));
+  --color-accent-700:color-mix(in srgb, var(--brand-primary-hover) 60%, var(--brand-text-primary));
+  --color-accent-800:color-mix(in srgb, var(--brand-primary-hover) 35%, var(--brand-text-primary));
+  --color-accent-900:color-mix(in srgb, var(--brand-primary-hover) 15%, var(--brand-text-primary));
+  --color-accent-2-100:var(--color-accent-100);
+  --color-accent-2-200:var(--color-accent-200);
+  --color-accent-2-300:var(--color-accent-300);
+  --color-accent-2-400:var(--color-accent-400);
+  --color-accent-2-500:var(--color-accent-500);
+  --color-accent-2-600:var(--color-accent-600);
+  --color-accent-2-700:var(--color-accent-700);
+  --color-accent-2-800:var(--color-accent-800);
+  --color-accent-2-900:var(--color-accent-900);
+  /* Neutral ramp: greys mixed from the muted text colour. 700 and 800 are the muted colour itself. */
+  --color-neutral-100:color-mix(in srgb, var(--brand-text-muted) 8%, var(--brand-surface-card-dark));
+  --color-neutral-200:#0b1c0d;
+  --color-neutral-300:color-mix(in srgb, var(--brand-text-muted) 20%, var(--brand-background-bg-dark));
+  --color-neutral-400:color-mix(in srgb, var(--brand-text-muted) 34%, var(--brand-background-bg-dark));
+  --color-neutral-500:color-mix(in srgb, var(--brand-text-muted) 48%, var(--brand-background-bg-dark));
+  --color-neutral-600:color-mix(in srgb, var(--brand-text-muted) 75%, var(--brand-background-bg-dark));
+  --color-neutral-700:var(--brand-text-muted);
+  --color-neutral-800:var(--brand-text-muted);
+  --color-neutral-900:color-mix(in srgb, var(--brand-text-muted) 40%, var(--brand-text-primary));
   --shadow-lg:0 12px 40px rgb(0 0 0 / .45);
-  --panel-bg:oklch(0.19 0.03 162);
-  --panel-fg:oklch(0.93 0.02 150);
-  --panel-sub:oklch(0.78 0.1 155);
   color-scheme:dark;
+
+  /* New aliases for the mockup's names, used from Phase 2 on. */
+  --color-muted:var(--brand-text-muted);
+  --color-fill:var(--brand-primary);
+  --color-on-fill:var(--brand-text-primary);
+  --color-fill-hover:var(--brand-primary-hover);
+  --color-on-fill-hover:var(--brand-background-bg-dark);
+  --color-amber:var(--brand-accent-break-amber);
+  --color-inset:#0b1c0d;
+  --color-tint-ok:rgb(88 175 73 / .14);
+  --color-tint-warn:rgb(245 158 11 / .12);
+  --color-scrim:rgb(9 22 11 / .8);
+
+  /* Logo colours, read by the inline SVG in components/ui/Brand.tsx. Flat fills only. */
+  --logo-a:var(--brand-primary-hover);
+  --logo-b:var(--brand-primary);
+  --logo-s:var(--brand-text-primary);
+  --logo-lens:#14301a;
 }
 
 [data-theme="mist"]{
-  --color-bg:oklch(0.968 0.007 155);
-  --color-surface:oklch(0.935 0.01 155);
-  --color-text:oklch(0.22 0.015 160);
-  --color-divider:color-mix(in oklch, oklch(0.22 0.015 160) 16%, transparent);
-  --color-accent:oklch(0.56 0.085 158);
-  --color-accent-2:oklch(0.56 0.085 158);
-  --color-accent-100:oklch(0.97 0.022 158);
-  --color-accent-200:oklch(0.93 0.04 158);
-  --color-accent-300:oklch(0.86 0.065 158);
-  --color-accent-400:oklch(0.77 0.085 158);
-  --color-accent-500:oklch(0.67 0.09 158);
-  --color-accent-600:oklch(0.5 0.085 158);
-  --color-accent-700:oklch(0.45 0.075 160);
-  --color-accent-800:oklch(0.36 0.06 160);
-  --color-accent-900:oklch(0.27 0.045 162);
-  --color-accent-2-100:oklch(0.97 0.022 158);
-  --color-accent-2-200:oklch(0.93 0.04 158);
-  --color-accent-2-300:oklch(0.86 0.065 158);
-  --color-accent-2-400:oklch(0.77 0.085 158);
-  --color-accent-2-500:oklch(0.67 0.09 158);
-  --color-accent-2-600:oklch(0.5 0.085 158);
-  --color-accent-2-700:oklch(0.45 0.075 160);
-  --color-accent-2-800:oklch(0.36 0.06 160);
-  --color-accent-2-900:oklch(0.27 0.045 162);
-  --color-neutral-100:oklch(0.975 0.005 155);
-  --color-neutral-200:oklch(0.925 0.008 155);
-  --color-neutral-300:oklch(0.87 0.01 155);
-  --color-neutral-400:oklch(0.78 0.01 155);
-  --color-neutral-500:oklch(0.68 0.01 155);
-  --color-neutral-600:oklch(0.58 0.01 155);
-  --color-neutral-700:oklch(0.48 0.012 155);
-  --color-neutral-800:oklch(0.38 0.012 155);
-  --color-neutral-900:oklch(0.29 0.012 155);
+  --color-bg:#f3f6ef;
+  --color-surface:#ffffff;
+  --color-text:#0d1b0f;
+  --color-divider:rgb(13 27 15 / .16);
+  --color-accent:var(--brand-primary);
+  --color-accent-2:var(--color-accent);
+  --color-accent-100:#eaf1e5;
+  --color-accent-200:#d3e5cc;
+  --color-accent-300:#a9cba1;
+  --color-accent-400:#7aa972;
+  --color-accent-500:#5a8a53;
+  --color-accent-600:#2f5430;
+  --color-accent-700:#254226;
+  --color-accent-800:#1a301c;
+  --color-accent-900:#0d1b0f;
+  --color-accent-2-100:var(--color-accent-100);
+  --color-accent-2-200:var(--color-accent-200);
+  --color-accent-2-300:var(--color-accent-300);
+  --color-accent-2-400:var(--color-accent-400);
+  --color-accent-2-500:var(--color-accent-500);
+  --color-accent-2-600:var(--color-accent-600);
+  --color-accent-2-700:var(--color-accent-700);
+  --color-accent-2-800:var(--color-accent-800);
+  --color-accent-2-900:var(--color-accent-900);
+  --color-neutral-100:#eef2ea;
+  --color-neutral-200:#e4e9df;
+  --color-neutral-300:#d5dbd0;
+  --color-neutral-400:#bcc4b8;
+  --color-neutral-500:#9aa396;
+  --color-neutral-600:#6b7280;
+  --color-neutral-700:#4b5563;
+  --color-neutral-800:#374151;
+  --color-neutral-900:#1f2937;
   --shadow-lg:0 12px 32px rgb(0 0 0 / .18);
-  --panel-bg:var(--color-accent-900);
-  --panel-fg:var(--color-bg);
-  --panel-sub:var(--color-accent-300);
   color-scheme:light;
+
+  --color-muted:#4b5563;
+  --color-fill:var(--brand-primary);
+  --color-on-fill:#ffffff;
+  --color-fill-hover:#2f5430;
+  --color-on-fill-hover:#ffffff;
+  --color-amber:#b45309;
+  --color-inset:#f3f6ef;
+  --color-tint-ok:rgb(60 104 59 / .1);
+  --color-tint-warn:rgb(180 83 9 / .09);
+  --color-scrim:rgb(13 27 15 / .5);
+
+  /* Day mode only swaps the S strokes and the lens; the two rings keep the brand greens. */
+  --logo-s:#09160b;
+  --logo-lens:#cfe6c9;
 }
 
 [data-theme="forest"] .dialog-backdrop{background:rgb(0 0 0 / .55)}

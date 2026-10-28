@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
-    "db:dev": "node scripts/dev-db.mjs"
+    "db:dev": "node scripts/dev-db.mjs",
+    "cli": "node scripts/cli.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

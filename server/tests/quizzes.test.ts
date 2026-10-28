@@ -84,7 +84,8 @@ describe("quiz attempts and results", () => {
   });
 
   afterAll(async () => {
-    // Deleting the users cascades to their rooms, documents, quizzes and attempts.
+    // Room.admin is Restrict, so the rooms go first (their documents, quizzes and attempts cascade), then the users.
+    await prisma.room.deleteMany({ where: { admin: { email: { in: [adminEmail, memberEmail] } } } });
     await prisma.user.deleteMany({ where: { email: { in: [adminEmail, memberEmail] } } });
   });
 

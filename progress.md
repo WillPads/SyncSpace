@@ -292,7 +292,57 @@ and its API contract is unchanged (every change is additive or a stricter rule t
   `NODE_ENV=production` against fresh Postgres) passed 19/19, and a full-stack run of the built web app
   (`next start`) against the built server, with every call through the `/backend` rewrite (pages, cookie
   through the proxy, WebSocket through the proxy, uploads, quiz, kick, logout), passed 27/27.
+- **Terminal client:** `npm run cli` (`server/scripts/cli.mjs`) is a menu-driven client for the whole API,
+  so the backend can be used end to end without the web app. Verified with a scripted two-person session
+  (20 checks: accounts, room, timer, task, upload -> quiz, live view, quiz, results, remove/ban/unban,
+  leave, delete, clean quit).
 - **Decisions:** no CRDT - every piece of shared state has one authoritative writer (the server) and the
   timer is a state machine whose transitions must be rejected, not merged; versioned server writes are the
   conflict resolution. Mesh WebRTC signaling kept (fine for 10 people); an SFU is out of scope.
   `inviteEnabled` keeps its name because the web app reads it. Full API reference: `server/API.md`.
+
+### Step 8 — New design + Phase 3 features (2026-10-28) — ✅ done locally (not deployed)
+
+Followed `docs/INTEGRATION.md`: the design in `docs/design/` (mockup, tokens, logo) replaces the Industry
+look, and the features the mockup showed that the server lacked were built server-first with tests. Will
+lifted the feature freeze for local building only; nothing was pushed or deployed.
+
+- **Phase 1 (tokens, fonts, logo):** `src/styles/tokens.css` holds the brand palette, spacing and radii;
+  `theme.css` maps the existing colour variables onto it for dark and light mode, so components picked up
+  the new colours without edits. Barlow → Space Grotesk, with JetBrains Mono only for timer digits and room
+  codes. New logo mark as an inline SVG coloured through `--logo-*` variables; `src/app/icon.svg` favicon.
+  The mockup's `--shadow-glow` token was left out (no-glow rule).
+- **Phase 2 (screens):** login, overview, dashboard, room (Ring/Grid/Timeline, quiz), `/join` restyled to
+  the 12-column bento layout, markup and CSS only. Shared pieces live in `src/styles/base.css`, scoped under
+  `.redesign` so screens could move over one at a time; one CSS file per screen in `src/styles/screens/`.
+  Marketing copy was checked against the code and corrected (no video, no long break, no room types, no
+  flashcards). Old Industry rules that nothing uses any more were deleted afterwards.
+- **Phase 3 schema (4 migrations):** `user_admin_handoff` (a room's admin can't be deleted out from under
+  it: `Room.admin` is now `RESTRICT`; a deleted user's uploads stay with `uploadedById` set to null;
+  `Document.sizeBytes`), `chat_messages`, `scheduled_sessions`, `notepad_and_quick_notes` (5 notepad slots
+  per user enforced by a unique index plus a hand-written `CHECK (slot BETWEEN 0 AND 4)`). Verified to apply
+  cleanly on a fresh database and on one with existing rows, with no drift.
+- **Phase 3 API:** settings (`PATCH /auth/me`, change password, which signs out other devices, and delete
+  account, which hands hosted rooms to the longest-standing member or deletes empty ones, in one locked
+  transaction), private notes and quick note (`/me/notes`, `/me/quick-note`), recent files across your rooms
+  with a `canDelete` flag (`/me/documents`) and document delete, room scheduling (hosts only, max 20 upcoming,
+  `GET /schedule/upcoming`), and room chat (REST writes, `chat:message` / `chat:deleted` over the WebSocket,
+  stable cursor paging, newest 500 kept per room). Wrong passwords on signed-in routes are 403, never 401,
+  so the UI never signs someone out for a typo.
+- **Rate limits behind the proxy:** web traffic reaches the server through Vercel, so every visitor looked
+  like the same IP. Sign-in and sign-up limits now key on the real client taken from `X-Forwarded-For` next
+  to the address Render's edge reports in `CF-Connecting-IP` (`CLIENT_IP_HEADER`), with a looser per-edge
+  ceiling so a faked header can't dodge them. Still to check once deployed: what headers actually arrive.
+- **Phase 3 UI:** dashboard notepad, debounced quick-note autosave, uploads into a chosen room with
+  client-side type/size checks, recent files that poll only while something is processing, upcoming sessions
+  in local time with a host-only schedule dialog; room chat tile (dedupe by id, refetch on reconnect,
+  "Load earlier", screen-reader announcements); `/settings` (profile, password, appearance, delete account)
+  and `/signed-out`. Theme and background animation are stored in the browser, not the database.
+- **Decisions (Will):** dashboard uploads go into a room you pick (no personal files); a deleted account's
+  messages and uploads stay in the group's rooms as "Deleted user"; only hosts schedule; no practice quizzes
+  outside the quiz phase. Left out rather than faked: bio, avatar upload, device settings, notifications,
+  Pomodoro defaults, reminders, room types, forgot password, DOC/DOCX/image uploads.
+- **Verified:** server 234 tests across 24 files on embedded Postgres, `tsc` clean for `src/` and `tests/`;
+  web app `npm run lint` (0 errors), `tsc` and `next build` clean; every screen exercised against a real
+  local stack (throwaway Postgres + API + `next start`) in dark and light mode at 390, 768 and 1280 px, with
+  44 px tap targets, visible keyboard focus and WCAG AA contrast checked.

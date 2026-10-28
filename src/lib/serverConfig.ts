@@ -4,7 +4,7 @@ import { API_BASE, api } from "@/lib/api";
  * Where the room WebSocket lives.
  *
  * In production the frontend (Vercel) can't proxy WebSocket upgrades, so
- * NEXT_PUBLIC_WS_URL points straight at the server, e.g. wss://syncspace-api.onrender.com.
+ * NEXT_PUBLIC_WS_URL points straight at the server, e.g. wss://syncspace-willpads-api.onrender.com.
  * Locally it's unset and the socket goes through the same /backend proxy as REST.
  */
 export function getServerWsUrl(): string {
@@ -16,7 +16,7 @@ export function getServerWsUrl(): string {
 
 /**
  * Opens the room socket. The auth cookie belongs to the frontend's domain, so it
- * isn't sent on a direct connection to the server; instead we fetch a 60-second
+ * isn't sent on a direct connection to the server; instead we fetch a 30-second
  * ticket over the (cookie-authenticated) REST proxy and pass it in the URL.
  */
 export async function openRoomSocket(roomId: string): Promise<WebSocket> {

@@ -24,6 +24,8 @@ services:
       - key: CLIENT_ORIGIN
         sync: false # your Vercel URL, e.g. https://syncspace-willpads.vercel.app (comma-separate several)
       - key: TRUST_PROXY
-        value: "1" # proxy hops in front of the server; decides req.ip for rate limits (see server/API.md)
+        value: "1" # fallback hop count for req.ip if the header below is missing (see server/API.md)
+      - key: CLIENT_IP_HEADER
+        value: CF-Connecting-IP # Render's Cloudflare edge sets this to the address that connected; callers can't override it
       - key: ANTHROPIC_API_KEY
         sync: false # optional: Claude writes the quizzes; without it the built-in generator is used

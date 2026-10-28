@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type ComponentType, useEffect, useState } from "react";
 import { AppNav } from "@/components/AppNav";
 import { AmbientAudioPlayer } from "@/components/room/AmbientAudioPlayer";
+import { ChatTile } from "@/components/room/ChatTile";
 import { GridLayout, type LayoutProps, RingLayout, type RoomLayout, TimelineLayout } from "@/components/room/layouts";
 import { NotesCard } from "@/components/room/NotesCard";
 import { QuizPanel } from "@/components/room/QuizPanel";
@@ -27,7 +28,7 @@ const LAYOUTS: Record<RoomLayout, ComponentType<LayoutProps>> = {
 
 export function RoomScreen({ roomId, user }: { roomId: string; user: User }) {
   const router = useRouter();
-  const { room, receivedAt, error, online, connection, quizVersion, applyRoom } = useLiveRoom(roomId);
+  const { room, receivedAt, error, online, connection, quizVersion, applyRoom, subscribe } = useLiveRoom(roomId);
   const now = useNow(250);
   const [layout, setLayout] = useState<RoomLayout>("A");
   const [busy, setBusy] = useState(false);
@@ -128,7 +129,7 @@ export function RoomScreen({ roomId, user }: { roomId: string; user: User }) {
   return (
     <>
       <AppNav user={user} current="room" />
-      <div className="room">
+      <main className="rm">
         <RoomHead
           room={room}
           isAdmin={isAdmin}
@@ -145,8 +146,8 @@ export function RoomScreen({ roomId, user }: { roomId: string; user: User }) {
             {actionError}
           </p>
         )}
-        <div className="room-body">
-          <div className="room-main">
+        <div className="rm-body">
+          <div className="rm-main">
             {session.state === "QUIZ_PHASE" ? (
               <QuizPanel
                 roomId={room.id}
@@ -167,8 +168,10 @@ export function RoomScreen({ roomId, user }: { roomId: string; user: User }) {
                 onRemove={onRemove}
               />
             )}
+            {/* Chat is the last tile of the main column, under the timer and people. */}
+            <ChatTile roomId={room.id} userId={user.id} isAdmin={isAdmin} subscribe={subscribe} />
           </div>
-          <div className="room-side">
+          <div className="rm-side">
             <TasksCard
               roomId={room.id}
               sharedTask={me?.task ?? ""}
@@ -180,7 +183,7 @@ export function RoomScreen({ roomId, user }: { roomId: string; user: User }) {
             <AmbientAudioPlayer />
           </div>
         </div>
-      </div>
+      </main>
     </>
   );
 }

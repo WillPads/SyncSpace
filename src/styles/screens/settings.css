@@ -1,0 +1,346 @@
+/* Settings (app/settings/page.tsx, components/settings/*). Layout follows the mockup's
+   #screen-settings: a menu tile on the left, the chosen section on the right. Shared pieces
+   (tiles, buttons, inputs, dialog, backdrop, app bar) are in base.css. Flat fills only.
+   The mockup's Audio/video, Pomodoro and quiz, and Notifications sections are left out because
+   nothing in the app or the server supports them. */
+
+.set {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--bento-gap);
+  align-content: start;
+  align-items: start;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+/* — menu tile — */
+.snav {
+  position: sticky;
+  top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+.snav-id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+  margin-bottom: var(--space-xs);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--color-divider);
+}
+.snav-id div {
+  min-width: 0;
+}
+.snav-id b,
+.snav-id small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.snav-id small {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.snav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-muted);
+  font: var(--text-body-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.snav-btn:hover {
+  color: var(--color-text);
+}
+.snav-btn[aria-current="page"] {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+  color: var(--color-text);
+}
+.snav-btn:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.snav-foot {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-divider);
+}
+.snav-foot .snav-btn {
+  width: 100%;
+}
+
+/* The initials circle (also used by the identity tile). */
+.redesign .avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+  font: var(--text-caption-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.redesign .avatar-lg {
+  width: 64px;
+  height: 64px;
+  font: var(--text-heading-md);
+}
+
+/* — section body — */
+.sbody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  align-content: start;
+  min-width: 0;
+}
+.sh,
+.set-wide {
+  grid-column: 1 / -1;
+}
+.sh h1 {
+  font: var(--text-heading-xl);
+}
+.sh .set-muted {
+  margin-top: var(--space-xs);
+}
+.set-muted {
+  color: var(--color-muted);
+  font: var(--text-body-md);
+}
+.set-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-lg);
+}
+.set-card h2 {
+  font: var(--text-heading-md);
+}
+.set-id {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: row; /* app.css gives .tile a column layout */
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.set-id-text {
+  min-width: 0;
+}
+.set-id-name {
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 600;
+}
+.set-two {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+.set-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+/* Green "saved" confirmation. --accent-text keeps 4.5:1 on the card in both themes. */
+.set-saved {
+  color: var(--accent-text);
+  font: var(--text-caption-sm);
+  font-weight: 600;
+}
+.set-danger {
+  border-color: var(--color-amber);
+}
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.set-row-title {
+  font-weight: 600;
+}
+
+/* — theme: three option cards (radio inputs stretched over the card) — */
+.opt-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+.opt-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: var(--space-md);
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  cursor: pointer;
+}
+.opt-card input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.opt-card:hover {
+  border-color: var(--accent-text);
+}
+.opt-card:has(input:checked) {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+}
+.opt-card:has(input:focus-visible) {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.opt-h {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+}
+.opt-d {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.opt-tick {
+  display: none;
+  margin-left: auto;
+  color: var(--accent-text);
+}
+.opt-card:has(input:checked) .opt-tick {
+  display: inline-flex;
+}
+
+/* — on/off switch. The button is the 44px tap target; the track and thumb are drawn inside. — */
+.set-switch {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+}
+.set-switch::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 6px;
+  width: 44px;
+  height: 26px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-full);
+  background: var(--color-inset);
+  transition: background-color 0.15s;
+}
+.set-switch span {
+  position: absolute;
+  top: 12px;
+  left: 9px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-muted);
+  transition:
+    transform 0.15s,
+    background-color 0.15s;
+}
+.set-switch[aria-checked="true"]::before {
+  border-color: var(--color-fill);
+  background: var(--color-fill);
+}
+.set-switch[aria-checked="true"] span {
+  background: var(--color-on-fill);
+  transform: translateX(18px);
+}
+.set-switch[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.set-switch:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* — delete dialog copy — */
+.set-del-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+}
+.set-del-copy ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding-left: var(--space-lg);
+}
+
+/* — narrow screens: menu becomes a wrapped row of buttons above the section — */
+@media (max-width: 860px) {
+  .set {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-md);
+  }
+  .snav {
+    position: static;
+    flex-flow: row wrap;
+  }
+  .snav-id {
+    display: none;
+  }
+  .snav-btn {
+    flex: 1 1 auto;
+  }
+  .snav-foot {
+    display: contents;
+  }
+  .snav-foot .snav-btn {
+    width: auto;
+  }
+}
+@media (max-width: 700px) {
+  .sbody,
+  .set-two,
+  .opt-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .set-row {
+    align-items: flex-start;
+  }
+}

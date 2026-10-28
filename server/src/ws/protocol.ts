@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ChatMessage } from "../lib/chatView.js";
 import type { SerializedRoom } from "../lib/roomView.js";
 
 /**
@@ -33,7 +34,11 @@ export type ServerMessage =
   | { type: "presence:joined"; userId: string }
   | { type: "presence:left"; userId: string }
   | { type: "document:update"; document: DocumentUpdate }
+  | { type: "document:deleted"; documentId: string }
   | { type: "quiz:ready"; documentId: string; quizId: string }
+  /** A new chat line, sent to everyone in the room including its author. */
+  | { type: "chat:message"; message: ChatMessage }
+  | { type: "chat:deleted"; messageId: string }
   /** Reply to time:ping. With the round trip, clients can estimate their clock offset (NTP-style). */
   | { type: "time:pong"; clientTime: number; serverTime: number }
   /** A relayed WebRTC signal. The server never reads `payload`. */

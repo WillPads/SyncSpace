@@ -11,7 +11,8 @@ import {
   removeUploads,
   uploadDir,
 } from "../lib/documentPipeline.js";
-import { HttpError, routeParam } from "../lib/http.js";
+import { canDeleteDocument } from "../lib/documentAccess.js";
+import { HttpError, isUuid, routeParam } from "../lib/http.js";
 import { enqueue } from "../lib/pipelineQueue.js";
 import { type RateLimiters, limitBy } from "../lib/rateLimit.js";
 import { requireAuth } from "../middleware/requireAuth.js";
@@ -55,6 +56,7 @@ function serializeDocument(document: Document) {
     id: document.id,
     filename: document.filename,
     mimeType: document.mimeType,
+    sizeBytes: document.sizeBytes,
     status: document.status,
     failureReason: document.failureReason,
     createdAt: document.createdAt.toISOString(),
@@ -89,6 +91,7 @@ export function createDocumentsRouter(limits: RateLimiters): Router {
             filename: cleanFilename(file.originalname),
             storagePath: file.filename,
             mimeType,
+            sizeBytes: file.size,
           },
         });
         keepFile = true;
@@ -112,6 +115,36 @@ export function createDocumentsRouter(limits: RateLimiters): Router {
     });
     res.json({ documents: documents.map(serializeDocument) });
   });
+
+  // The uploader or the room admin may delete a file. If the uploader's account is gone, only the admin can.
+  // The quiz made from it (and any attempts on that quiz) go with it, via the database's cascade.
+  router.delete(
+    "/:roomId/documents/:documentId",
+    requireAuth,
+    requireRoomRole("ADMIN", "MEMBER"),
+    async (req, res) => {
+      const roomId = routeParam(req, "roomId");
+      const documentId = routeParam(req, "documentId");
+      const notFound = () => new HttpError(404, "DOCUMENT_NOT_FOUND", "Document not found.");
+      if (!isUuid(documentId)) throw notFound();
+
+      const document = await prisma.document.findFirst({
+        where: { id: documentId, roomId },
+        select: { uploadedById: true, storagePath: true },
+      });
+      if (!document) throw notFound();
+      if (!canDeleteDocument(req.user!.id, req.participant!.role, document.uploadedById)) {
+        throw new HttpError(403, "FORBIDDEN", "Only the uploader or the room admin can delete this file.");
+      }
+
+      const { count } = await prisma.document.deleteMany({ where: { id: documentId, roomId } });
+      if (count === 0) throw notFound();
+      // The original file is normally gone once it's been read; this covers one still waiting to be processed.
+      await removeUploads([document.storagePath]);
+      sendToRoom(roomId, { type: "document:deleted", documentId });
+      res.status(204).end();
+    }
+  );
 
   return router;
 }

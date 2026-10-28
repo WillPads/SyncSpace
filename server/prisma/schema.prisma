@@ -41,13 +41,18 @@ model User {
   passwordHash String
   displayName  String
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
-  memberships  Participant[]
-  adminRooms   Room[]        @relation("RoomAdmin")
-  documents    Document[]
-  sessions     Session[]
-  quizAttempts QuizAttempt[]
-  roomBans     RoomBan[]
+  memberships     Participant[]
+  adminRooms      Room[]             @relation("RoomAdmin")
+  documents       Document[]
+  sessions        Session[]
+  quizAttempts    QuizAttempt[]
+  roomBans        RoomBan[]
+  chatMessages    ChatMessage[]
+  notepadItems    NotepadItem[]
+  quickNote       QuickNote?
+  createdSessions ScheduledSession[]
 }
 
 /// A signed-in browser or device. The cookie carries a random token; only its SHA-256 hash is stored here.
@@ -90,12 +95,14 @@ model Room {
   capacity      Int      @default(10)
   createdAt     DateTime @default(now())
 
-  admin        User             @relation("RoomAdmin", fields: [adminId], references: [id], onDelete: Cascade)
-  participants Participant[]
-  session      PomodoroSession?
-  documents    Document[]
-  quizzes      Quiz[]
-  bans         RoomBan[]
+  admin             User               @relation("RoomAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  participants      Participant[]
+  session           PomodoroSession?
+  documents         Document[]
+  quizzes           Quiz[]
+  bans              RoomBan[]
+  chatMessages      ChatMessage[]
+  scheduledSessions ScheduledSession[]
 
   @@index([adminId])
 }
@@ -147,24 +154,84 @@ model PomodoroSession {
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
+/// One line of room chat. The author is nulled (shown as "Deleted user") if their account is deleted;
+/// the message stays for the group. The index serves "latest N messages in a room, newest first".
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  authorId  String?
+  body      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  room   Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId])
+}
+
+/// A study session someone planned for a room. createdBy is nulled if that account is deleted;
+/// the session stays on the room's calendar.
+model ScheduledSession {
+  id          String   @id @default(uuid())
+  roomId      String
+  createdById String?
+  startsAt    DateTime
+  durationMin Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  room      Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([roomId, startsAt])
+  @@index([createdById])
+}
+
+/// A personal "top 5" notepad line. slot is the position 0-4; the CHECK constraint
+/// NotepadItem_slot_range (hand-added in the migration SQL, Prisma can't express it) enforces the range.
+model NotepadItem {
+  id        String   @id @default(uuid())
+  userId    String
+  slot      Int
+  body      String   @db.VarChar(120)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slot])
+}
+
+/// One free-text scratch note per user (the user id is the primary key, so at most one row each).
+model QuickNote {
+  userId    String   @id
+  body      String   @default("") @db.VarChar(5000)
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Document {
   id            String         @id @default(uuid())
   roomId        String
-  uploadedById  String
+  /// Null once the uploader's account is deleted; the file and its quizzes stay in the room.
+  uploadedById  String?
   filename      String
   storagePath   String
   mimeType      String
+  sizeBytes     Int?
   status        DocumentStatus @default(PENDING)
   failureReason String?
   parsedText    String?
   createdAt     DateTime       @default(now())
 
   room       Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  uploadedBy User   @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   quizzes    Quiz[]
 
   @@index([roomId, createdAt])
-  @@index([uploadedById])
+  @@index([uploadedById, createdAt])
   @@index([status])
 }
 

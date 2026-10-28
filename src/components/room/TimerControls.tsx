@@ -1,5 +1,4 @@
 import { Flag, Pause, Play, SkipForward } from "lucide-react";
-import { Corners } from "@/components/ui/Corners";
 import { Icon } from "@/components/ui/Icon";
 import type { DotState, TimerView } from "@/lib/timer";
 import type { Session, SessionAction } from "@/lib/types";
@@ -37,13 +36,12 @@ export function TimerControls({
         <button
           key={action}
           type="button"
-          className={primary ? `btn btn-primary blueprint ${size}` : `btn btn-secondary ${size}`}
+          className={primary ? `btn btn-primary ${size}` : `btn btn-secondary ${size}`}
           disabled={busy}
           title={variant === "icons" ? label : undefined}
           aria-label={variant === "icons" ? label : undefined}
           onClick={() => onAction(action)}
         >
-          {primary && <Corners />}
           {showIcon && <Icon icon={icon} size={iconSize} />}
           {variant !== "icons" && label}
         </button>
@@ -52,7 +50,7 @@ export function TimerControls({
   );
 }
 
-export function RoundDots({ dots, className = "round-dots" }: { dots: DotState[]; className?: string }) {
+export function RoundDots({ dots, className = "rm-pips" }: { dots: DotState[]; className?: string }) {
   return (
     <div className={className} aria-hidden>
       {dots.map((state, i) => (

@@ -51,6 +51,21 @@ export function routeParam(req: Request, name: string): string {
   return value;
 }
 
+/** Postgres text columns can't hold NUL bytes; reject them up front instead of failing with a 500. */
+export function hasNoNulBytes(value: string): boolean {
+  return !value.includes(String.fromCharCode(0));
+}
+
+/** Reads a `?limit=` style query value: a whole number from 1 to `max`, or `fallback` when absent. */
+export function parseLimit(raw: unknown, fallback: number, max: number): number {
+  if (raw === undefined) return fallback;
+  if (typeof raw === "string" && /^[0-9]{1,6}$/.test(raw)) {
+    const value = Number(raw);
+    if (value >= 1 && value <= max) return value;
+  }
+  throw new HttpError(400, "VALIDATION_ERROR", `limit must be a whole number from 1 to ${max}.`);
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isUuid(value: string): boolean {

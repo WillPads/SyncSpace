@@ -3,7 +3,6 @@
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import useSWR from "swr";
-import { Corners } from "@/components/ui/Corners";
 import { Icon } from "@/components/ui/Icon";
 import { api, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -36,30 +35,29 @@ export function QuizPanel({
 
   return (
     <>
-      <div className="quiz-head blueprint">
-        <Corners />
-        <div className="quiz-head-copy">
-          <span className="eyebrow">Quiz phase</span>
-          <h3>Session complete</h3>
-          <p className="muted">
+      <section className="tile tile-tint rm-quiz-head" aria-labelledby="rm-quiz-h">
+        <div className="rm-quiz-copy">
+          <span className="rm-phase">Quiz phase</span>
+          <h2 id="rm-quiz-h">Session complete</h2>
+          <p className="rm-sub">
             {rounds} focus {rounds === 1 ? "round" : "rounds"} done. Test yourself on the notes shared in this room.
           </p>
         </div>
         {isAdmin ? (
-          <button className="btn btn-secondary btn-lg" type="button" disabled={busy} onClick={onReset}>
+          <button className="btn btn-secondary btn-lg rm-reset" type="button" disabled={busy} onClick={onReset}>
             <Icon icon={RotateCcw} />
             Back to idle
           </button>
         ) : (
-          <span className="host-note">The host resets the room for the next session</span>
+          <span className="rm-note">The host resets the room for the next session</span>
         )}
-      </div>
+      </section>
 
       {activeQuizId ? (
         <QuizRunner roomId={roomId} quizId={activeQuizId} onBack={() => setActiveQuizId(null)} />
       ) : (
-        <div className="section">
-          <h3>Quizzes</h3>
+        <section className="tile rm-card" aria-labelledby="rm-quizzes-h">
+          <h2 id="rm-quizzes-h">Quizzes</h2>
           {error ? (
             <div className="empty">
               <p>{errorMessage(error)}</p>
@@ -69,12 +67,11 @@ export function QuizPanel({
               <p>No quizzes yet. Upload notes under Session notes and a quiz appears here once they&apos;re processed.</p>
             </div>
           ) : (
-            <div className="quiz-list">
+            <div className="rm-quiz-list">
               {quizzes?.map((quiz) => (
-                <button className="quiz-pick card blueprint" type="button" key={quiz.id} onClick={() => setActiveQuizId(quiz.id)}>
-                  <Corners />
-                  <span className="card-title">{quiz.title}</span>
-                  <span className="card-meta">
+                <button className="rm-quiz-pick" type="button" key={quiz.id} onClick={() => setActiveQuizId(quiz.id)}>
+                  <span className="rm-quiz-title">{quiz.title}</span>
+                  <span className="rm-quiz-meta">
                     {quiz.questionCount} {quiz.questionCount === 1 ? "question" : "questions"}
                     <Icon icon={ArrowRight} size={14} />
                   </span>
@@ -82,7 +79,7 @@ export function QuizPanel({
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
     </>
   );
@@ -118,14 +115,14 @@ function QuizRunner({ roomId, quizId, onBack }: { roomId: string; quizId: string
   }
 
   return (
-    <form className="section quiz" onSubmit={handleSubmit}>
-      <div className="row-between">
-        <button className="btn btn-ghost" type="button" onClick={onBack}>
+    <form className="tile rm-card rm-quiz" onSubmit={handleSubmit}>
+      <div className="rm-quiz-bar">
+        <button className="btn btn-secondary" type="button" onClick={onBack}>
           <Icon icon={ArrowLeft} size={14} />
           All quizzes
         </button>
         {result && (
-          <span className="quiz-score" role="status">
+          <span className="rm-score" role="status">
             {result.score} / {result.total} correct
           </span>
         )}
@@ -133,13 +130,13 @@ function QuizRunner({ roomId, quizId, onBack }: { roomId: string; quizId: string
       {error && <p className="form-err">{errorMessage(error)}</p>}
       {quiz && (
         <>
-          <h3>{quiz.title}</h3>
+          <h2>{quiz.title}</h2>
           {quiz.questions.map((question, index) => {
             const correctId = result?.correctChoices[question.id];
             return (
-              <fieldset className="quiz-q" key={question.id}>
-                <legend className="quiz-prompt">
-                  <span className="step-n">{String(index + 1).padStart(2, "0")}</span> {question.prompt}
+              <fieldset className="rm-q" key={question.id}>
+                <legend className="rm-q-prompt">
+                  <span className="rm-q-n">{String(index + 1).padStart(2, "0")}</span> {question.prompt}
                 </legend>
                 <div className="radio-stack">
                   {question.choices.map((choice) => {
@@ -148,7 +145,7 @@ function QuizRunner({ roomId, quizId, onBack }: { roomId: string; quizId: string
                       <label
                         key={choice.id}
                         className={cn(
-                          "radio quiz-choice",
+                          "radio rm-choice",
                           result && choice.id === correctId && "is-correct",
                           result && picked && choice.id !== correctId && "is-wrong"
                         )}
@@ -162,6 +159,8 @@ function QuizRunner({ roomId, quizId, onBack }: { roomId: string; quizId: string
                         />
                         <span className="dot" />
                         {choice.text}
+                        {result && choice.id === correctId && <span className="rm-mark is-correct">Correct answer</span>}
+                        {result && picked && choice.id !== correctId && <span className="rm-mark is-wrong">Your answer</span>}
                       </label>
                     );
                   })}
@@ -174,15 +173,14 @@ function QuizRunner({ roomId, quizId, onBack }: { roomId: string; quizId: string
               {submitError}
             </p>
           )}
-          <div className="controls quiz-actions">
+          <div className="rm-controls rm-quiz-actions">
             {result ? (
               <button className="btn btn-secondary btn-lg" type="button" onClick={retry}>
                 <Icon icon={RotateCcw} />
                 Try again
               </button>
             ) : (
-              <button className="btn btn-primary blueprint btn-lg" type="submit" disabled={!allAnswered || submitting}>
-                <Corners />
+              <button className="btn btn-primary btn-lg" type="submit" disabled={!allAnswered || submitting}>
                 {submitting ? "Checking…" : "Submit answers"}
               </button>
             )}

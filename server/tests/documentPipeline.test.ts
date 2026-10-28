@@ -115,6 +115,8 @@ describe("processDocument", () => {
   });
 
   afterAll(async () => {
+    // Room.admin is Restrict: a user who still admins a room can't be deleted, so the room goes first.
+    await prisma.room.deleteMany({ where: { admin: { email } } });
     await prisma.user.deleteMany({ where: { email } });
   });
 
@@ -222,6 +224,7 @@ describe("POST /rooms/:roomId/documents", () => {
   });
 
   afterAll(async () => {
+    await prisma.room.deleteMany({ where: { admin: { email } } });
     await prisma.user.deleteMany({ where: { email } });
   });
 

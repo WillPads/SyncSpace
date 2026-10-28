@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, api } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiError, type ChatMessage, api } from "@/lib/api";
 import { openRoomSocket } from "@/lib/serverConfig";
 import type { Room } from "@/lib/types";
 
@@ -9,7 +9,18 @@ type ServerMessage =
   | { type: "room:update"; room: Room }
   | { type: "presence:sync"; onlineUserIds: string[] }
   | { type: "presence:joined" | "presence:left"; userId: string }
-  | { type: "quiz:ready"; documentId: string; quizId: string };
+  | { type: "quiz:ready"; documentId: string; quizId: string }
+  | { type: "hello" }
+  | { type: "chat:message"; message: ChatMessage }
+  | { type: "chat:deleted"; messageId: string };
+
+/**
+ * Frames this hook does not handle itself but passes on to other parts of the room screen
+ * (the chat) through `subscribe`. "hello" is the server's first frame on every connection, so it
+ * also means "the socket is live again".
+ */
+export type RoomEvent = Extract<ServerMessage, { type: "hello" | "chat:message" | "chat:deleted" }>;
+export type RoomEventListener = (event: RoomEvent) => void;
 
 export type Connection = "connecting" | "live" | "reconnecting";
 
@@ -29,6 +40,15 @@ export function useLiveRoom(roomId: string) {
   const [quizVersion, setQuizVersion] = useState(0);
 
   const applyRoom = useCallback((room: Room) => setSnapshot({ room, receivedAt: Date.now() }), []);
+
+  // Listeners live in a ref so subscribing never re-runs the socket effect below.
+  const listeners = useRef(new Set<RoomEventListener>());
+  const subscribe = useCallback((listener: RoomEventListener) => {
+    listeners.current.add(listener);
+    return () => {
+      listeners.current.delete(listener);
+    };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -56,6 +76,11 @@ export function useLiveRoom(roomId: string) {
           break;
         case "quiz:ready":
           setQuizVersion((v) => v + 1);
+          break;
+        case "hello":
+        case "chat:message":
+        case "chat:deleted":
+          listeners.current.forEach((listener) => listener(message));
           break;
       }
     }
@@ -126,5 +151,6 @@ export function useLiveRoom(roomId: string) {
     connection,
     quizVersion,
     applyRoom,
+    subscribe,
   };
 }

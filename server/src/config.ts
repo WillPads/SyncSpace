@@ -14,6 +14,17 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().default("http://localhost:3000"),
   // Express "trust proxy": a hop count ("1"), "true"/"false", or a list of trusted addresses.
   TRUST_PROXY: z.string().default("1"),
+  // Name of a request header that the edge in front of the server sets to the address that
+  // connected to it and that callers can't override (Cloudflare's CF-Connecting-IP on Render).
+  // Unset = no such header is trusted.
+  CLIENT_IP_HEADER: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9-]+$/, "CLIENT_IP_HEADER must be a header name such as CF-Connecting-IP.")
+      .optional()
+  ),
   ANTHROPIC_API_KEY: optionalString,
   ANTHROPIC_MODEL: z.string().min(1).default("claude-opus-5-5"),
   // "auto" uses Claude when ANTHROPIC_API_KEY is set and the built-in generator otherwise.
@@ -28,6 +39,8 @@ export interface AppConfig {
   port: number;
   clientOrigins: string[];
   trustProxy: boolean | number | string;
+  /** Lower-case name of the trusted edge-IP header, or undefined. */
+  clientIpHeader: string | undefined;
   anthropicApiKey: string | undefined;
   anthropicModel: string;
   quizGenerator: "auto" | "llm" | "heuristic";
@@ -67,6 +80,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
     port: e.PORT,
     clientOrigins: e.CLIENT_ORIGIN.split(",").map(normalizeOrigin).filter(Boolean),
     trustProxy: parseTrustProxy(e.TRUST_PROXY),
+    clientIpHeader: e.CLIENT_IP_HEADER?.toLowerCase(),
     anthropicApiKey: e.ANTHROPIC_API_KEY,
     anthropicModel: e.ANTHROPIC_MODEL,
     quizGenerator: e.QUIZ_GENERATOR,

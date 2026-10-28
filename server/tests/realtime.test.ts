@@ -93,6 +93,7 @@ describe("realtime protocol", () => {
   afterAll(async () => {
     realtime.close();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+    await prisma.room.deleteMany({ where: { admin: { email: { in: [adminEmail, memberEmail] } } } });
     await prisma.user.deleteMany({ where: { email: { in: [adminEmail, memberEmail] } } });
   });
 

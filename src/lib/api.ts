@@ -97,3 +97,135 @@ export function isProcessing(status: DocumentStatus): boolean {
 export function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : "Something went wrong.";
 }
+
+// ---------------------------------------------------------------------------------------------
+// Dashboard features: notepad, quick note, recent files and upcoming sessions.
+// Kept apart from `api` above so the older calls stay untouched.
+// ---------------------------------------------------------------------------------------------
+
+export interface Note {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface NotesResponse {
+  notes: Note[]; // newest first
+  limit: number; // how many notes the notepad holds (5)
+}
+
+export interface QuickNote {
+  text: string;
+  updatedAt: string | null; // null until the first save
+}
+
+/** One row of "Recent files": an upload from any room the user is in. */
+export interface DashboardFile {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number | null; // null for files uploaded before sizes were recorded
+  status: DocumentStatus;
+  failureReason: string | null;
+  createdAt: string;
+  roomId: string;
+  roomName: string;
+  quizId: string | null;
+  questionCount: number | null;
+  uploadedById: string | null; // null once the uploader deleted their account
+  canDelete: boolean; // you uploaded it or you host the room: the same rule the delete route enforces
+}
+
+export interface UpcomingSession {
+  id: string;
+  roomId: string;
+  roomName: string;
+  startsAt: string;
+  durationMin: number;
+  createdById: string | null;
+}
+
+export const dashboardApi = {
+  listNotes: () => request<NotesResponse>("/me/notes"),
+  addNote: (text: string) => send<{ note: Note }>("POST", "/me/notes", { text }).then((res) => res.note),
+  deleteNote: (id: string) => send<void>("DELETE", `/me/notes/${encodeURIComponent(id)}`),
+
+  getQuickNote: () => request<QuickNote>("/me/quick-note"),
+  // `keepalive` lets the browser finish the request even while the page is closing or reloading.
+  saveQuickNote: (text: string, keepalive = false) =>
+    request<QuickNote>("/me/quick-note", { method: "PUT", body: JSON.stringify({ text }), keepalive }),
+
+  listMyDocuments: (limit = 6) =>
+    request<{ documents: DashboardFile[] }>(`/me/documents?limit=${limit}`).then((res) => res.documents),
+  deleteDocument: (roomId: string, documentId: string) =>
+    send<void>("DELETE", `/rooms/${encodeURIComponent(roomId)}/documents/${encodeURIComponent(documentId)}`),
+
+  listUpcoming: (limit = 10) =>
+    request<{ sessions: UpcomingSession[] }>(`/schedule/upcoming?limit=${limit}`).then((res) => res.sessions),
+  scheduleSession: (roomId: string, input: { startsAt: string; durationMin: number }) =>
+    send<{ session: unknown }>("POST", `/rooms/${encodeURIComponent(roomId)}/schedule`, input),
+  deleteScheduledSession: (roomId: string, sessionId: string) =>
+    send<void>("DELETE", `/rooms/${encodeURIComponent(roomId)}/schedule/${encodeURIComponent(sessionId)}`),
+};
+
+/** Like errorMessage, but a 429 gets a plain "slow down" sentence instead of the server's wording. */
+export function friendlyError(error: unknown): string {
+  if (error instanceof ApiError && error.status === 429) return "You're doing that too often. Wait a bit and try again.";
+  return errorMessage(error);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Room chat. Writes (send, delete) and history go over REST; new messages are pushed to the room
+// over the WebSocket (see hooks/useLiveRoom.ts and hooks/useRoomChat.ts).
+// ---------------------------------------------------------------------------------------------
+
+export interface ChatMessage {
+  id: string;
+  userId: string | null; // null once the author deleted their account
+  displayName: string; // "Deleted user" when userId is null
+  body: string; // plain text
+  createdAt: string; // ISO timestamp
+}
+
+export interface ChatPage {
+  messages: ChatMessage[]; // oldest first within the page
+  nextBefore: string | null; // pass as `before` to get the next older page; null when there is none
+}
+
+/** The server's limit for one message, after trimming. */
+export const CHAT_MAX_LENGTH = 500;
+
+export const chatApi = {
+  list: (roomId: string, options: { before?: string; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (options.limit) params.set("limit", String(options.limit));
+    if (options.before) params.set("before", options.before);
+    const query = params.size > 0 ? `?${params.toString()}` : "";
+    return request<ChatPage>(`/rooms/${encodeURIComponent(roomId)}/messages${query}`);
+  },
+  send: (roomId: string, body: string) =>
+    send<{ message: ChatMessage }>("POST", `/rooms/${encodeURIComponent(roomId)}/messages`, { body }).then(
+      (res) => res.message
+    ),
+  remove: (roomId: string, messageId: string) =>
+    send<void>("DELETE", `/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(messageId)}`),
+};
+
+// ---------------------------------------------------------------------------------------------
+// Account settings: profile, password, delete account. A wrong password is a 403 (never 401), so
+// callers must show it as a field error and must not treat it as "signed out".
+// ---------------------------------------------------------------------------------------------
+
+/** The server's minimum for a new password (the same rule as sign-up). */
+export const MIN_PASSWORD_LENGTH = 8;
+
+export const accountApi = {
+  /** Send only what changed. `currentPassword` is required by the server when `email` is sent. */
+  updateProfile: (input: { displayName?: string; email?: string; currentPassword?: string }) =>
+    send<{ user: User }>("PATCH", "/auth/me", input).then((res) => res.user),
+  /** 204. Signs out every other device; this one stays signed in. */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    send<void>("POST", "/auth/change-password", { currentPassword, newPassword }),
+  /** 204 and the server clears the cookie. Irreversible. */
+  deleteAccount: (password: string) => send<void>("POST", "/auth/delete-account", { password }),
+};

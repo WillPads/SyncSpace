@@ -2,7 +2,6 @@
 
 import { Check } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { Corners } from "@/components/ui/Corners";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 import { loadStored, saveStored } from "@/lib/storage";
@@ -56,27 +55,26 @@ export function TasksCard({
   const doneCount = tasks.filter((task) => task.done).length;
 
   return (
-    <div className="card blueprint side-card">
-      <Corners />
-      <div className="row-between">
-        <span className="card-title">Your tasks this session</span>
-        <span className="side-count">
+    <section className="tile rm-card" aria-labelledby="rm-tasks-h">
+      <header className="rm-card-head">
+        <h2 id="rm-tasks-h">Your tasks this session</h2>
+        <span className="rm-count">
           {doneCount} of {tasks.length} done
         </span>
-      </div>
+      </header>
       {tasks.length > 0 && (
-        <div className="task-list">
+        <div className="rm-task-list">
           {tasks.map((task, i) => (
             <button
               key={i}
-              className={cn("task", task.done && "is-done")}
+              className={cn("rm-task", task.done && "is-done")}
               type="button"
               role="checkbox"
               aria-checked={task.done}
               onClick={() => update(tasks.map((t, j) => (j === i ? { ...t, done: !t.done } : t)))}
             >
-              <span className="task-box">{task.done && <Icon icon={Check} size={12} className="icon-bold" />}</span>
-              <span className="task-text">{task.text}</span>
+              <span className="rm-task-box">{task.done && <Icon icon={Check} size={12} className="icon-bold" />}</span>
+              <span className="rm-task-text">{task.text}</span>
             </button>
           ))}
         </div>
@@ -95,15 +93,16 @@ export function TasksCard({
           onChange={(event) => setDraft(event.target.value)}
         />
       </form>
+      <p className="help">The first task you have not finished is shown to the room as what you are working on.</p>
       {doneCount > 0 && (
         <button
-          className="btn btn-ghost side-link"
+          className="link-btn rm-clear"
           type="button"
           onClick={() => update(tasks.filter((task) => !task.done))}
         >
           Clear done
         </button>
       )}
-    </div>
+    </section>
   );
 }

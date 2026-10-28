@@ -1,6 +1,7 @@
 import { CodeJoinForm } from "@/components/CodeJoinForm";
 import { OverviewNav, OpenRoomButton } from "@/components/overview/OverviewActions";
 import { PreviewCard } from "@/components/overview/PreviewCard";
+import { AppBackdrop } from "@/components/ui/Backdrop";
 
 const STEPS = [
   {
@@ -22,32 +23,33 @@ const STEPS = [
 
 export default function OverviewPage() {
   return (
-    <div className="ov">
+    <div className="redesign app-screen">
+      <AppBackdrop />
       <OverviewNav />
-      <div className="hero">
-        <div className="hero-copy">
-          <span className="card-kicker">Co-working rooms · shared Pomodoro clock</span>
-          <h1>Work alongside people. On the same clock.</h1>
-          <p className="hero-lede">
-            SyncSpace rooms run one Pomodoro timer for everyone inside. Focus together, take the break
-            together, then test yourself on what you covered.
+      <main className="ovw">
+        <section className="tile tile-tint ovw-hero" aria-labelledby="ovw-h">
+          <p className="eyebrow">Co-working rooms · shared Pomodoro clock</p>
+          <h1 id="ovw-h">Work alongside people. On the same clock.</h1>
+          <p className="ovw-lede">
+            SyncSpace rooms run one Pomodoro timer for everyone inside. Focus together, take the break together, then
+            test yourself on what you covered.
           </p>
-          <div className="hero-actions">
+          <div className="ovw-actions">
             <OpenRoomButton />
             <CodeJoinForm id="ov-code" />
           </div>
-        </div>
+        </section>
         <PreviewCard />
-      </div>
-      <div className="steps" id="how">
-        {STEPS.map((step) => (
-          <div className="step" key={step.n}>
-            <span className="step-n">{step.n}</span>
-            <h3>{step.title}</h3>
-            <p>{step.body}</p>
-          </div>
-        ))}
-      </div>
+        <ol className="ovw-steps" id="how" aria-label="How it works">
+          {STEPS.map((step) => (
+            <li className="tile" key={step.n}>
+              <span className="ovw-step-n">{step.n}</span>
+              <h2>{step.title}</h2>
+              <p>{step.body}</p>
+            </li>
+          ))}
+        </ol>
+      </main>
     </div>
   );
 }

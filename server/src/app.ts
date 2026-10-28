@@ -6,9 +6,12 @@ import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./lib/http.js";
 import { type RateLimitConfig, createRateLimiters } from "./lib/rateLimit.js";
 import { createAuthRouter } from "./routes/auth.js";
+import { createChatRouter } from "./routes/chat.js";
 import { createDocumentsRouter } from "./routes/documents.js";
+import { createMeRouter } from "./routes/me.js";
 import { createQuizzesRouter } from "./routes/quizzes.js";
 import { createRoomsRouter } from "./routes/rooms.js";
+import { createScheduleRouter } from "./routes/schedule.js";
 
 export interface AppOptions {
   /** Override individual rate limits (tests use this to exercise them quickly). */
@@ -21,9 +24,9 @@ export function createApp(options: AppOptions = {}): Express {
   const config = getConfig();
   const app = express();
 
-  // In production, requests reach us through proxies (Vercel's rewrite, then Render's load
-  // balancer) that terminate TLS and add X-Forwarded-For. How many hops to trust is
-  // TRUST_PROXY; it decides what req.ip (used for rate limits) is.
+  // In production, requests reach us through proxies (Vercel's rewrite for REST, then Render's
+  // Cloudflare edge and load balancer) that add X-Forwarded-For. TRUST_PROXY decides what
+  // req.ip is; the client address used for rate limits is worked out in lib/rateLimit.ts.
   app.set("trust proxy", config.trustProxy);
   app.disable("x-powered-by");
 
@@ -56,6 +59,9 @@ export function createApp(options: AppOptions = {}): Express {
   app.use("/rooms", createRoomsRouter(limits));
   app.use("/rooms", createDocumentsRouter(limits));
   app.use("/rooms", createQuizzesRouter());
+  app.use("/rooms", createChatRouter(limits));
+  app.use("/me", createMeRouter(limits));
+  app.use(createScheduleRouter(limits)); // /rooms/:roomId/schedule and /schedule/upcoming
 
   options.extraRoutes?.(app);
 

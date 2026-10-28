@@ -1,0 +1,106 @@
+/* Logged-out and account-deleted screen (app/signed-out/page.tsx). Layout follows the mockup's
+   #screen-out: a wide accent tile with the headline and a narrower list tile beside it. The top
+   bar is the login screen's (.auth-bar in login.css). Flat fills only. */
+
+.out {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  align-content: center;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
+.out-hero {
+  grid-column: 1 / 8;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+}
+.out-hero h1 {
+  max-width: 18ch;
+  font: var(--text-heading-xl);
+  font-size: 44px;
+  letter-spacing: -0.02em;
+}
+.out-hero h1:focus {
+  outline: none; /* focus is moved here by script only so the new page is announced */
+}
+.out-sub {
+  max-width: 44ch;
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.5;
+}
+.out-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+.out-list {
+  grid-column: 8 / 13;
+  padding: var(--space-xl) var(--space-lg);
+}
+.out-list h2 {
+  margin-bottom: var(--space-lg);
+  font: var(--text-heading-md);
+}
+.ticks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ticks li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+.ticks b {
+  display: block;
+}
+.tick-ico {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--accent-text);
+  border-radius: var(--radius-full);
+  color: var(--accent-text);
+}
+.tick-ico.is-gone {
+  border-color: var(--color-muted);
+  color: var(--color-muted);
+}
+.tick-text {
+  display: block;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+
+@media (max-width: 900px) {
+  .out {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+  }
+  .out-hero,
+  .out-list {
+    grid-column: 1;
+  }
+  .out-hero {
+    padding: var(--space-lg);
+  }
+  .out-hero h1 {
+    font-size: 34px;
+  }
+}

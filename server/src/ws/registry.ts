@@ -129,6 +129,11 @@ export function disconnectUserEverywhere(userId: string): void {
   closeWhere((info) => info.userId === userId, CloseCode.SignedOut, "Signed out");
 }
 
+/** Closes all of a user's sockets except those opened under one session (e.g. after a password change). */
+export function disconnectUserExceptSession(userId: string, keepSessionId: string): void {
+  closeWhere((info) => info.userId === userId && info.sessionId !== keepSessionId, CloseCode.SignedOut, "Signed out");
+}
+
 export function closeRoom(roomId: string): void {
   closeWhere((info) => info.roomId === roomId, CloseCode.RoomDeleted, "Room deleted");
 }

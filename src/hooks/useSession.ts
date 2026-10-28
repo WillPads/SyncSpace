@@ -4,7 +4,7 @@ import useSWR from "swr";
 import { ApiError, api } from "@/lib/api";
 import type { User } from "@/lib/types";
 
-const SESSION_KEY = "session";
+export const SESSION_KEY = "session";
 
 async function fetchSession(): Promise<User | null> {
   try {
@@ -26,6 +26,8 @@ export function useSession() {
     isLoading,
     error: error ?? null,
     retry: () => mutate(),
+    /** Puts a fresh user object in the cache (after a profile edit) without asking the server again. */
+    setUser: (updated: User) => mutate(updated, false),
     signIn: async (email: string, password: string) => mutate(await api.login(email, password), false),
     register: async (email: string, password: string, displayName: string) =>
       mutate(await api.register(email, password, displayName), false),

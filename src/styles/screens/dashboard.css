@@ -1,0 +1,578 @@
+/* Dashboard (app/dashboard/page.tsx, components/dashboard/*). Layout follows the mockup's
+   #screen-dash: a 12-column bento grid of 20px-radius tiles with 16px gaps. Shared pieces
+   (tiles, buttons, inputs, chips, dialog, backdrop, app bar) are in base.css. Flat fills only.
+   Phase 3 adds the Upload, Notes, Quick notes, Recent files and Upcoming tiles. The mockup's
+   reminder bell, room-type filters, DOC/image uploads and 20 MB limit are left out because the
+   server doesn't support them. */
+
+.dash {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  align-content: start;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+/* — greeting — */
+.dash-head {
+  display: block;
+  grid-column: 1 / -1;
+}
+.dash-date {
+  margin-bottom: var(--space-xs);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dash-head h1 {
+  font: var(--text-heading-xl);
+}
+.dash-sub {
+  margin-top: var(--space-xs);
+  color: var(--color-muted);
+}
+
+/* — create + join — */
+.dash-create,
+.dash-join {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.dash-create {
+  grid-column: 1 / 6;
+  align-items: flex-start;
+}
+.dash-join {
+  grid-column: 6 / 13;
+  justify-content: center;
+}
+.dash-create h2 {
+  font: var(--text-heading-xl);
+}
+.dash-join h2,
+.dash-rooms h2 {
+  font: var(--text-heading-md);
+}
+.dash-create p {
+  color: var(--color-muted);
+}
+/* Join form: label on its own line, then the code box and the button side by side. */
+.dash-join .code-join {
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+}
+.dash-join .code-join label {
+  flex: 0 0 100%;
+  font: var(--text-caption-sm);
+}
+.dash-join .code-join .input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  font: var(--text-code-mono);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+.dash-join .code-join .input::placeholder {
+  font: var(--text-body-md);
+  letter-spacing: normal;
+}
+.dash-join .code-join .btn {
+  border-left: 1px solid var(--color-muted);
+}
+
+/* — stats — */
+.dash-stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  margin: 0;
+}
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-lg);
+}
+.dash-stat dt {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dash-stat dd {
+  margin: 0;
+  font: 700 44px/1 var(--font-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+/* — your rooms — */
+.dash-rooms {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rooms-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+}
+.room-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.room-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.room-kicker {
+  min-width: 0; /* wraps on narrow phones instead of cutting off "Invite only" */
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  line-height: 28px; /* lines up with the chip beside it */
+}
+.room-invite {
+  white-space: nowrap; /* keep "· Invite only" together when the line wraps */
+}
+.room-code {
+  color: var(--color-text);
+  font: var(--text-code-mono);
+  letter-spacing: 0.06em;
+}
+.room-name {
+  font: var(--text-heading-md);
+  overflow-wrap: anywhere;
+}
+.room-clock-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-sm);
+}
+.room-clock {
+  font: 700 32px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.room-card .bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-divider);
+}
+.room-card .bar > div {
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+.room-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+.room-foot .meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+
+/* — Phase 3 tiles: upload, notepad, quick note, recent files, upcoming — */
+.dash-upload,
+.dash-notepad,
+.dash-quick,
+.dash-files,
+.dash-upcoming {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-lg);
+}
+.dash-upload {
+  grid-column: 1 / 5;
+}
+.dash-notepad {
+  grid-column: 5 / 9;
+}
+.dash-quick {
+  grid-column: 9 / 13;
+}
+.dash-files {
+  grid-column: 1 / 7;
+}
+.dash-upcoming {
+  grid-column: 7 / 13;
+}
+.tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 44px; /* the Schedule button sits in this row */
+}
+.tile-head h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--text-heading-md);
+}
+.dash-upload .tile-head,
+.dash-notepad .tile-head,
+.dash-quick .tile-head {
+  min-height: 0;
+}
+
+/* upload */
+.drop {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 150px;
+  padding: var(--space-lg);
+  border: 2px dashed var(--color-muted);
+  border-radius: var(--radius-lg);
+  background: var(--color-inset);
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.drop.is-over {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+}
+.drop-icon {
+  color: var(--accent-text);
+}
+.drop p {
+  color: var(--color-muted);
+}
+.up-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.up-msgs:empty {
+  display: none;
+}
+.up-busy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font: var(--text-caption-sm);
+  overflow-wrap: anywhere;
+}
+.up-msgs ul {
+  margin: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+/* notepad: ruled paper. The lines are a tiny repeating SVG (a 1px rectangle), not a CSS gradient. */
+.pad-holes {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 calc(var(--space-sm) * -1);
+  padding: 0 var(--space-lg);
+}
+.pad-holes i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+.paper {
+  position: relative;
+  flex: 1;
+  min-height: 268px; /* the add line plus five notes, 44px each */
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background-color: var(--color-inset);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='44'%3E%3Crect y='43' width='8' height='1' fill='%239ca3af' fill-opacity='.22'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+[data-theme="mist"] .paper {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='44'%3E%3Crect y='43' width='8' height='1' fill='%230d1b0f' fill-opacity='.16'/%3E%3C/svg%3E");
+}
+.paper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 40px;
+  width: 1px;
+  background: var(--accent-text);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.paper ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.paper form,
+.paper li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 44px;
+  padding: 0 var(--space-xs) 0 52px;
+}
+.paper input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: var(--text-body-md);
+}
+.paper input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+.paper input:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.paper .save {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+}
+.note-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 20px;
+}
+.paper-msg,
+.paper-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 52px;
+  color: var(--color-muted);
+}
+.paper-msg {
+  flex-wrap: wrap;
+}
+
+/* quick note */
+.quick-text {
+  flex: 1;
+  width: 100%;
+  min-height: 220px;
+  padding: var(--space-md);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  color: var(--color-text);
+  font: var(--text-body-md);
+  resize: none;
+}
+.quick-text::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+.quick-text:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.quick-text:disabled {
+  opacity: 0.6;
+}
+.quick-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.quick-status.is-error {
+  color: var(--color-amber);
+}
+
+/* rows shared by Recent files and Upcoming sessions */
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--color-divider);
+}
+.row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.row:last-child {
+  padding-bottom: 0;
+}
+.row-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  color: var(--accent-text);
+}
+.row-info {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.row-title {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  overflow-wrap: anywhere;
+}
+.row-warn {
+  color: var(--color-amber);
+}
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+.datebox {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 52px;
+  padding: var(--space-xs) 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  text-align: center;
+}
+.datebox-m {
+  color: var(--accent-text);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.datebox-n {
+  font: 700 20px/1.2 var(--font-mono);
+}
+
+/* — tablet and phone — */
+@media (max-width: 1000px) {
+  .dash {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-lg) var(--space-md);
+  }
+  .dash-create,
+  .dash-join,
+  .dash-upload,
+  .dash-notepad,
+  .dash-quick,
+  .dash-files,
+  .dash-upcoming {
+    grid-column: 1;
+  }
+  .room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .redesign .app-nav {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .dash-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-stat {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+  }
+  .dash-stat dd {
+    font-size: 36px;
+  }
+  .room-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .row-actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+  .dash-join .code-join {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .dash-join .code-join label {
+    flex-basis: auto;
+  }
+  .dash-join .code-join .input {
+    flex: none;
+    width: 100%;
+  }
+}

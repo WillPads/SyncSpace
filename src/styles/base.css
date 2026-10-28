@@ -1,0 +1,564 @@
+/* Shared primitives for the redesigned screens (Phase 2 of the redesign, see docs/INTEGRATION.md).
+   Everything here is scoped under .redesign, so a screen opts in by putting that class on its
+   root element. Every screen has it now; industry.css / app.css only supply the base layer
+   underneath (resets, the .btn/.input/.dialog defaults, a few shared helpers).
+   Loaded after additions.css (see app/layout.tsx). Colours come from the --color-* aliases in
+   theme.css, so every rule here works in both Forest (dark) and Mist (light). Flat fills only:
+   no gradients, no glow. */
+
+.redesign {
+  --bento-r: 20px; /* tile corner radius */
+  --bento-gap: var(--space-md); /* 16px between tiles */
+  /* Text-sized green: the brand green in dark mode, a darker green in light mode so it keeps 4.5:1. */
+  --accent-text: var(--color-accent);
+  /* Text on an amber fill (the destructive button): dark on the bright dark-mode amber, white on the deeper light-mode amber. */
+  --on-amber: var(--brand-background-bg-dark);
+  /* Colours of the dot grid and rings in the page backdrop (see components/ui/Backdrop.tsx). */
+  --fx-dot: rgb(156 163 175 / 0.26);
+  --fx-ring: rgb(88 175 73 / 0.3);
+
+  color: var(--color-text);
+  font: var(--text-body-md);
+}
+[data-theme="mist"] .redesign {
+  --on-amber: #ffffff;
+  --accent-text: var(--color-accent-600);
+  --fx-dot: rgb(13 27 15 / 0.17);
+  --fx-ring: rgb(60 104 59 / 0.22);
+}
+
+/* Industry's heading and paragraph margins/sizes are for the old layout; the mockup sets its own. */
+.redesign :is(h1, h2, h3, p) {
+  margin: 0;
+}
+
+/* — bento tiles: rounded, flat, tinted by the theme — */
+.redesign .tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--bento-r);
+  box-shadow: var(--shadow-card);
+}
+/* The accent tile: 24% of the brand green mixed into the card colour. */
+.redesign .tile-tint {
+  background: color-mix(in srgb, var(--color-fill) 24%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+/* — buttons: 44px minimum tap target, 8px radius, no crosshair corners — */
+.redesign .btn {
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+  border-radius: var(--radius-md);
+  font: var(--text-body-md);
+  font-weight: 600;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.redesign .btn-primary {
+  background: var(--color-fill);
+  border-color: var(--color-fill);
+  color: var(--color-on-fill);
+}
+.redesign .btn-primary:hover,
+.redesign .btn-primary:active {
+  background: var(--color-fill-hover);
+  border-color: var(--color-fill-hover);
+  color: var(--color-on-fill-hover);
+}
+.redesign .btn-secondary {
+  border-color: var(--color-muted);
+  color: var(--color-text);
+}
+.redesign .btn-secondary:hover {
+  background: none;
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+.redesign .btn-lg {
+  min-height: 52px;
+  padding: var(--space-sm) var(--space-lg);
+}
+.redesign .btn-block {
+  width: 100%;
+  margin-top: 0;
+}
+.redesign .btn:disabled {
+  opacity: 0.5;
+}
+/* Destructive action (Delete account): amber fill, the app's "careful" colour. Hover swaps to the text colour, as in the mockup. */
+.redesign .btn-warn {
+  background: var(--color-amber);
+  border-color: var(--color-amber);
+  color: var(--on-amber);
+}
+.redesign .btn-warn:hover,
+.redesign .btn-warn:active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+.redesign .btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Icon-only buttons (e.g. the theme toggle): square 44px with a visible outline. */
+.redesign .btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-muted);
+  color: var(--color-text);
+}
+.redesign .btn-icon:hover {
+  background: none;
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+/* Bare icon button (the delete "x" on a note): 44px square, no border until hovered. */
+.redesign .icon-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.redesign .icon-btn:hover {
+  background: var(--color-tint-ok);
+  color: var(--color-text);
+}
+.redesign :is(.btn, .input, .icon-btn, .seg button, .link-btn, .me-link):focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* — form fields: label, input, help text, error — */
+.redesign .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.redesign .field > label {
+  margin: 0;
+  font: var(--text-caption-sm);
+  color: var(--color-text);
+}
+.redesign .input {
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-inset);
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: var(--text-body-md);
+  caret-color: var(--accent-text);
+}
+/* A <select> styled like a text input. */
+.redesign select.input {
+  cursor: pointer;
+}
+.redesign .input:hover {
+  border-color: var(--color-muted);
+}
+.redesign .input:focus-visible {
+  border-color: var(--accent-text);
+}
+.redesign .input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+.redesign .input.is-invalid,
+.redesign .input.is-invalid:hover,
+.redesign .input.is-invalid:focus-visible {
+  border-color: var(--color-amber);
+}
+.redesign .help {
+  font: var(--text-caption-sm);
+  color: var(--color-muted);
+}
+.redesign .field-err {
+  margin: 0;
+  font: var(--text-caption-sm);
+  color: var(--color-amber);
+}
+/* Form-level error (wrong password, server down...). Amber border on a faint amber tint; the
+   text stays the normal text colour because amber on the tint is only 4.46:1 in light mode. */
+.redesign .form-err {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-amber);
+  border-radius: var(--radius-md);
+  background: var(--color-tint-warn);
+  color: var(--color-text);
+  font: var(--text-caption-sm);
+}
+/* Text-style button used for "Sign in" / "Create account" switches. 44px tall so it is easy to tap. */
+.redesign .link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--space-xs);
+  border-radius: var(--radius-sm);
+  color: var(--accent-text);
+  font: var(--text-caption-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.redesign .link-btn:hover {
+  color: var(--color-text);
+}
+
+/* — segmented control (two or more buttons, one pressed) — */
+.redesign .seg {
+  display: flex;
+  overflow: visible; /* Industry clips; the focus ring must show */
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+}
+.redesign .seg button {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.redesign .seg button:hover {
+  color: var(--color-text);
+}
+.redesign .seg button[aria-pressed="true"],
+.redesign .seg button[aria-selected="true"] {
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+}
+
+/* Segmented control made of radio inputs (the New room dialog: Focus / Break minutes). */
+.redesign .seg-opt {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.redesign .seg-opt + .seg-opt {
+  border-left: 0;
+}
+.redesign .seg-opt:not(:has(input:checked)):hover {
+  background: none;
+  color: var(--color-text);
+}
+.redesign .seg-opt:has(input:checked) {
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+}
+/* Keyboard focus ring drawn outside the option, so it stays visible on the green selected one. */
+.redesign .seg-opt:has(input:focus-visible) {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* — chips: small pill labels ("Your room") — */
+.redesign .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  font: var(--text-caption-sm);
+  white-space: nowrap;
+}
+.redesign .chip-ok {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+
+/* Room codes are one of the two places the mono font is allowed (the other is timers). */
+.redesign .mono {
+  font: var(--text-code-mono);
+}
+
+/* Secondary text, and the old "muted" helper. */
+.redesign .muted {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+
+/* — page shell: the root of every redesigned screen — */
+.redesign.app-screen {
+  position: relative;
+  isolation: isolate; /* own stacking context, so the backdrop can sit behind the content */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* the rings bleed off the edges on purpose */
+}
+
+/* — page backdrop: dot grid + rings, drawn as flat SVG shapes (no gradients) — */
+.app-fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+.fx-dots {
+  position: absolute;
+  inset: 0;
+}
+.fx-dots circle {
+  fill: var(--fx-dot);
+}
+.fx-ring {
+  position: absolute;
+  fill: none;
+  stroke: var(--fx-ring);
+  stroke-width: 1.5;
+}
+.fx-ring.r1 {
+  width: 900px;
+  height: 900px;
+  left: -300px;
+  top: -260px;
+}
+.fx-ring.r2 {
+  width: 760px;
+  height: 760px;
+  right: -260px;
+  bottom: -300px;
+}
+.fx-ring.r3 {
+  width: 380px;
+  height: 380px;
+  right: 26%;
+  top: 12%;
+  opacity: 0.8;
+}
+/* The rings drift slowly, but only for people who haven't asked for less motion. */
+/* Settings > Appearance > Background animation writes data-fx="off" on <html> (hooks/useBackgroundMotion.ts). */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-fx="off"]) .fx-ring.r1 {
+    animation: ring-drift-1 46s ease-in-out infinite alternate;
+  }
+  html:not([data-fx="off"]) .fx-ring.r2 {
+    animation: ring-drift-2 58s ease-in-out infinite alternate;
+  }
+  html:not([data-fx="off"]) .fx-ring.r3 {
+    animation: ring-drift-3 34s ease-in-out infinite alternate;
+  }
+}
+@keyframes ring-drift-1 {
+  to {
+    transform: translate(90px, 70px) rotate(14deg);
+  }
+}
+@keyframes ring-drift-2 {
+  to {
+    transform: translate(-80px, -60px) rotate(-16deg);
+  }
+}
+@keyframes ring-drift-3 {
+  to {
+    transform: translate(-50px, 60px) rotate(20deg);
+  }
+}
+
+/* — app bar (components/AppNav.tsx) — */
+.redesign .app-nav {
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--color-divider);
+}
+.redesign .app-nav .brand-link {
+  gap: var(--space-sm);
+  min-height: 44px;
+  font: var(--text-heading-md);
+  letter-spacing: normal;
+}
+.redesign .app-nav .brand-mark svg {
+  height: 30px;
+}
+.redesign .app-nav .nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  font-weight: 600;
+}
+.redesign .app-nav .nav-link:hover {
+  color: var(--color-text);
+}
+.redesign .app-nav .nav-link[aria-current="page"] {
+  background: var(--color-tint-ok);
+  border-color: var(--accent-text);
+  color: var(--color-text);
+}
+/* The initials avatar is a link to Settings. The link is the 44px tap target; the circle inside is 36px. */
+.redesign .app-nav .me-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--radius-full);
+}
+.redesign .app-nav .me-link[aria-current="page"] .me {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.redesign .app-nav .me-link:hover .me {
+  background: var(--color-fill-hover);
+  color: var(--color-on-fill-hover);
+}
+.redesign .app-nav .me {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+  font: var(--text-caption-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.redesign .app-nav :is(a, .btn):focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* — status cards: loading, error and not-found screens (components/ui/ScreenMessage.tsx) — */
+.redesign .notice-card {
+  padding: var(--space-lg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--bento-r);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.redesign .notice-card h3 {
+  font: var(--text-heading-md);
+}
+.redesign .spin {
+  color: var(--accent-text);
+}
+
+/* — empty and error states inside a tile — */
+.redesign .empty {
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg);
+  border: 1px dashed var(--color-muted);
+  border-radius: var(--radius-lg);
+  background: none;
+  text-align: center;
+}
+.redesign .empty p {
+  max-width: 48ch;
+  color: var(--color-muted);
+  font: var(--text-body-md);
+}
+
+/* — dialogs (New room) — */
+.redesign .dialog-backdrop {
+  background: var(--color-scrim);
+}
+.redesign .dialog {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.redesign .dialog-title {
+  font: var(--text-heading-xl);
+  font-size: 26px;
+}
+.redesign .dialog-actions {
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+.redesign .field-label {
+  margin: 0;
+  color: var(--color-text);
+  font: var(--text-caption-sm);
+}
+.redesign .dialog-row {
+  gap: var(--space-md);
+}
+.redesign .dialog-row > .field {
+  flex: 1 1 200px;
+}
+.redesign .radio-stack {
+  gap: var(--space-sm);
+}
+/* Radio choices as full-width option cards. */
+.redesign .radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  font: var(--text-body-md);
+}
+.redesign .radio:hover {
+  border-color: var(--accent-text);
+}
+.redesign .radio:has(input:checked) {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+}
+.redesign .radio .dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-muted);
+}
+.redesign .radio input:checked + .dot {
+  border-color: var(--accent-text);
+  background: var(--accent-text);
+  box-shadow: none;
+}
+.redesign .radio input:focus-visible + .dot {
+  outline: 2px solid var(--accent-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .redesign *,
+  .redesign *::before,
+  .redesign *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,6 +1,5 @@
 import { ArrowRight, Users } from "lucide-react";
 import Link from "next/link";
-import { Corners } from "@/components/ui/Corners";
 import { Icon } from "@/components/ui/Icon";
 import { deriveTimer, liveRemaining } from "@/lib/timer";
 import type { Room } from "@/lib/types";
@@ -19,15 +18,15 @@ export function RoomCard({
   const timer = room.session ? deriveTimer(room.session, liveRemaining(room.session, receivedAt, now)) : null;
 
   return (
-    <div className="card blueprint room-card">
-      <Corners />
-      <div className="row-between">
-        <span className="card-kicker ellipsis">
-          Code {room.code} · {room.inviteEnabled ? "Invites open" : "Invite only"}
+    <li className="room-card">
+      <div className="room-top">
+        <span className="room-kicker">
+          Code <span className="room-code">{room.code}</span>{" "}
+          <span className="room-invite">· {room.inviteEnabled ? "Invites open" : "Invite only"}</span>
         </span>
-        {isAdmin && <span className="tag tag-accent">Your room</span>}
+        {isAdmin && <span className="chip chip-ok">Your room</span>}
       </div>
-      <span className="card-title">{room.name}</span>
+      <h3 className="room-name">{room.name}</h3>
       <div className="room-clock-row">
         <span className="room-clock">{timer?.timeStr ?? "--:--"}</span>
         <span className="muted">{timer?.statusLine}</span>
@@ -36,7 +35,7 @@ export function RoomCard({
         <div style={{ width: `${((timer?.progress ?? 0) * 100).toFixed(2)}%` }} />
       </div>
       <div className="room-foot">
-        <span className="card-meta">
+        <span className="meta">
           <Icon icon={Users} size={14} />
           {room.participants.length} in room
         </span>
@@ -45,6 +44,6 @@ export function RoomCard({
           <Icon icon={ArrowRight} size={14} />
         </Link>
       </div>
-    </div>
+    </li>
   );
 }

@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FileText, type LucideIcon, Timer, Users } from "lucide-react";
 import { type FormEvent, type InputHTMLAttributes, Suspense, useEffect, useState } from "react";
+import { AppBackdrop } from "@/components/ui/Backdrop";
 import { BrandMark } from "@/components/ui/Brand";
-import { Corners } from "@/components/ui/Corners";
+import { Icon } from "@/components/ui/Icon";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useSession } from "@/hooks/useSession";
 import { errorMessage } from "@/lib/api";
 
@@ -12,10 +15,19 @@ type Mode = "signin" | "register";
 
 const MIN_PASSWORD = 8;
 
-const PANEL_ROWS = [
-  { n: "01", title: "Open a room", sub: "Choose focus and break lengths" },
-  { n: "02", title: "Share the code", sub: "Everyone joins the same clock" },
-  { n: "03", title: "Quiz at the end", sub: "Built from the notes you upload" },
+// The three feature tiles under the headline. Each line describes something the app really does.
+const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: Timer, title: "One timer for the whole room", text: "Focus and break rounds stay in step for everyone inside." },
+  {
+    icon: Users,
+    title: "Invite with a room code",
+    text: "Share the code or an invite link. The host can turn invites off or remove someone at any time.",
+  },
+  {
+    icon: FileText,
+    title: "Quizzes from your notes",
+    text: "Upload a .pdf, .txt or .md file, then take a short quiz on it when the host ends the session.",
+  },
 ];
 
 // Only follow same-site paths, so ?next= can't bounce people to another site.
@@ -33,10 +45,12 @@ export default function LoginPage() {
 
 function LoginScreen() {
   const router = useRouter();
-  const next = safeNext(useSearchParams().get("next"));
+  const params = useSearchParams();
+  const next = safeNext(params.get("next"));
   const { user, signIn, register } = useSession();
 
-  const [mode, setMode] = useState<Mode>("signin");
+  // /login?mode=register opens on "Create account" (the deleted-account screen links here).
+  const [mode, setMode] = useState<Mode>(params.get("mode") === "register" ? "register" : "signin");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,110 +102,135 @@ function LoginScreen() {
   const isRegister = mode === "register";
 
   return (
-    <div className="login">
-      <div className="login-main">
+    <div className="redesign app-screen auth-screen">
+      <AppBackdrop />
+      <header className="auth-bar">
         <Link href="/" className="brand-btn">
           <BrandMark />
           SyncSpace
         </Link>
-        <form className="login-card blueprint" noValidate onSubmit={handleSubmit}>
-          <Corners />
+        <ThemeToggle />
+      </header>
+
+      <main className="auth-grid">
+        <section className="tile tile-tint auth-hero" aria-labelledby="auth-headline">
+          <p className="eyebrow">Co-working rooms for students</p>
+          <h1 id="auth-headline">Study together, stay in sync.</h1>
+        </section>
+
+        <section className="tile auth-card" aria-labelledby="login-title">
+          <div className="seg" role="group" aria-label="Account">
+            <button type="button" aria-pressed={isRegister} onClick={() => switchMode("register")}>
+              Create account
+            </button>
+            <button type="button" aria-pressed={!isRegister} onClick={() => switchMode("signin")}>
+              Sign in
+            </button>
+          </div>
           <div>
-            <h2>{isRegister ? "Create account" : "Sign in"}</h2>
-            <p className="sub">
-              {isRegister ? "One account for every room you join." : "Your rooms and rounds are waiting."}
+            <h2 id="login-title">{isRegister ? "Create your account" : "Welcome back"}</h2>
+            <p className="auth-sub">
+              {isRegister ? "Free for students. No card needed." : "Sign in to see your rooms and notes."}
             </p>
           </div>
 
-          {formError && (
-            <p className="form-err" role="alert">
-              {formError}
-            </p>
-          )}
+          <form className="auth-form" noValidate onSubmit={handleSubmit}>
+            {formError && (
+              <p className="form-err" role="alert">
+                {formError}
+              </p>
+            )}
 
-          {isRegister && (
+            {isRegister && (
+              <Field
+                id="login-name"
+                label="Full name"
+                error={errors.name}
+                input={{
+                  autoComplete: "name",
+                  placeholder: "How the room will see you",
+                  maxLength: 40,
+                  value: displayName,
+                  onChange: (e) => {
+                    setDisplayName(e.target.value);
+                    if (errors.name) setErrors((s) => ({ ...s, name: undefined }));
+                  },
+                }}
+              />
+            )}
             <Field
-              id="login-name"
-              label="Your name"
-              error={errors.name}
+              id="login-email"
+              label={isRegister ? "School or personal email" : "Email"}
+              error={errors.email}
               input={{
-                autoComplete: "name",
-                placeholder: "How the room will see you",
-                maxLength: 40,
-                value: displayName,
+                type: "email",
+                autoComplete: "email",
+                placeholder: "you@school.edu",
+                value: email,
                 onChange: (e) => {
-                  setDisplayName(e.target.value);
-                  if (errors.name) setErrors((s) => ({ ...s, name: undefined }));
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((s) => ({ ...s, email: undefined }));
                 },
               }}
             />
-          )}
-          <Field
-            id="login-email"
-            label="Email"
-            error={errors.email}
-            input={{
-              type: "email",
-              autoComplete: "email",
-              placeholder: "you@school.edu",
-              value: email,
-              onChange: (e) => {
-                setEmail(e.target.value);
-                if (errors.email) setErrors((s) => ({ ...s, email: undefined }));
-              },
-            }}
-          />
-          <Field
-            id="login-pw"
-            label="Password"
-            error={errors.password}
-            input={{
-              type: "password",
-              autoComplete: isRegister ? "new-password" : "current-password",
-              placeholder: isRegister ? `At least ${MIN_PASSWORD} characters` : undefined,
-              value: password,
-              onChange: (e) => {
-                setPassword(e.target.value);
-                if (errors.password) setErrors((s) => ({ ...s, password: undefined }));
-              },
-            }}
-          />
+            <Field
+              id="login-pw"
+              label="Password"
+              error={errors.password}
+              help={isRegister ? `At least ${MIN_PASSWORD} characters.` : undefined}
+              input={{
+                type: "password",
+                autoComplete: isRegister ? "new-password" : "current-password",
+                value: password,
+                onChange: (e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((s) => ({ ...s, password: undefined }));
+                },
+              }}
+            />
 
-          <button className="btn btn-primary btn-block blueprint" type="submit" disabled={submitting}>
-            <Corners />
-            {submitting ? (isRegister ? "Creating account…" : "Signing in…") : isRegister ? "Create account" : "Sign in"}
-          </button>
-          <div className="login-links">
-            {isRegister ? (
-              <>
-                <span className="muted">Already have an account?</span>
-                <button className="link-btn" type="button" onClick={() => switchMode("signin")}>
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                <span className="muted">New to SyncSpace?</span>
-                <button className="link-btn" type="button" onClick={() => switchMode("register")}>
-                  Create account
-                </button>
-              </>
-            )}
-          </div>
-        </form>
-      </div>
-      <div className="login-panel">
-        <span className="panel-kicker">How a room works</span>
-        {PANEL_ROWS.map((row) => (
-          <div className="panel-row" key={row.n}>
-            <span className="panel-clock">{row.n}</span>
-            <span className="panel-name">
-              <b>{row.title}</b>
-              <span>{row.sub}</span>
-            </span>
-          </div>
-        ))}
-      </div>
+            <button className="btn btn-primary btn-lg btn-block" type="submit" disabled={submitting}>
+              {submitting ? (isRegister ? "Creating account…" : "Signing in…") : isRegister ? "Create account" : "Sign in"}
+            </button>
+            <div className="login-links">
+              {isRegister ? (
+                <>
+                  <span className="help">Already have an account?</span>
+                  <button className="link-btn" type="button" onClick={() => switchMode("signin")}>
+                    Sign in
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="help">New to SyncSpace?</span>
+                  <button className="link-btn" type="button" onClick={() => switchMode("register")}>
+                    Create account
+                  </button>
+                </>
+              )}
+            </div>
+          </form>
+        </section>
+
+        <p className="tile auth-lede">
+          SyncSpace is a co-working space with a shared Pomodoro timer. Join friends in a room, focus in rounds, and
+          when the host ends the session, take a short quiz built from your own notes.
+        </p>
+
+        <ul className="auth-feats">
+          {FEATURES.map((f) => (
+            <li className="tile" key={f.title}>
+              <span className="auth-ico">
+                <Icon icon={f.icon} size={26} />
+              </span>
+              <div>
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </main>
     </div>
   );
 }
@@ -200,13 +239,16 @@ function Field({
   id,
   label,
   error,
+  help,
   input,
 }: {
   id: string;
   label: string;
   error?: string;
+  help?: string;
   input: InputHTMLAttributes<HTMLInputElement>;
 }) {
+  const describedBy = [help && `${id}-help`, error && `${id}-err`].filter(Boolean).join(" ") || undefined;
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -215,8 +257,13 @@ function Field({
         id={id}
         className={error ? "input is-invalid" : "input"}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-err` : undefined}
+        aria-describedby={describedBy}
       />
+      {help && (
+        <span className="help" id={`${id}-help`}>
+          {help}
+        </span>
+      )}
       {error && (
         <div className="field-err" id={`${id}-err`}>
           {error}

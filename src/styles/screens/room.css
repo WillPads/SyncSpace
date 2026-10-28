@@ -1,0 +1,1080 @@
+/* Room screen (app/room/[id]/page.tsx, components/room/*) and the invite landing page
+   (app/join/[code]/page.tsx). Layout follows the mockup's #screen-room: a 12-column bento grid of
+   20px-radius tiles with 16px gaps. Shared pieces (tiles, buttons, inputs, chips, segmented control,
+   empty state, app bar, backdrop) are in base.css. Flat fills only: no gradients, no glow.
+
+   All room class names start with rm- so they never collide with the older Industry classes in
+   app.css (.tile, .card, .ring ...), which the room no longer uses.
+
+   Grid: .rm-body is 12 columns. .rm-main (8 columns) holds the timer view (Ring, Grid or
+   Timeline) and the people, .rm-side (4 columns) holds tasks, notes and ambient sound.
+   The chat tile (components/room/ChatTile.tsx) is the last child of .rm-main, so it stacks
+   under the timer and people. */
+
+/* The page column. Selectors that must beat Industry's rules (.tag, .btn-icon ...) are scoped under
+   .room-screen, the class on the screen root (room and join pages). */
+.rm {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bento-gap);
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+/* — header: room name, status chips, view switch and room actions — */
+.rm-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.rm-title {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.rm-title h1 {
+  font: var(--text-heading-xl);
+  overflow-wrap: anywhere;
+}
+.rm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+.rm-chips .chip {
+  background: var(--color-surface);
+}
+.rm-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+.rm-dot.is-offline {
+  background: var(--color-amber);
+}
+.rm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+/* Leaving is the one "careful" action in the bar, so it borrows the warning amber. */
+.room-screen .rm-leave,
+.room-screen .rm-leave:hover {
+  border-color: var(--color-amber);
+  color: var(--color-amber);
+}
+.room-screen .rm-leave:hover {
+  background: var(--color-tint-warn);
+}
+
+/* — page grid — */
+.rm-body {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  align-items: start;
+}
+.rm-main,
+.rm-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bento-gap);
+}
+.rm-main {
+  grid-column: 1 / 9;
+}
+.rm-side {
+  grid-column: 9 / 13;
+}
+
+/* — shared tile bits — */
+.rm-card,
+.rm-people {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.rm-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-md);
+}
+.rm-card h2,
+.rm-card-head h2 {
+  font: var(--text-heading-md);
+}
+.rm-count,
+.rm-desc,
+.rm-sub,
+.rm-note {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.rm-count {
+  font-variant-numeric: tabular-nums;
+}
+.rm-note {
+  text-align: center;
+}
+.rm-phase {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.rm-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+.rm-controls .btn-lg:not(.btn-icon) {
+  min-height: 52px;
+}
+.rm-controls .btn-primary:not(.btn-icon) {
+  min-width: 152px;
+}
+/* In the narrow timer tile the three host buttons stack at the same width. */
+.rm-timer .rm-controls {
+  flex-direction: column;
+  align-items: stretch;
+  width: min(100%, 280px);
+}
+/* Primary icon buttons: base.css's .btn-icon rule would repaint them as outlined buttons. */
+.room-screen .btn-icon.btn-primary {
+  border-color: var(--color-fill);
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+}
+.room-screen .btn-icon.btn-primary:hover {
+  border-color: var(--color-fill-hover);
+  background: var(--color-fill-hover);
+  color: var(--color-on-fill-hover);
+}
+.room-screen .rm-controls .btn-icon.btn-lg {
+  width: 52px;
+  height: 52px;
+}
+
+/* — avatars and status tags (shared by every view) — */
+.rm-av {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-fill) 24%, var(--color-surface));
+  color: var(--color-text);
+  font: 700 14px/1 var(--font-heading);
+}
+.rm-av.is-you {
+  border-color: var(--color-fill);
+  background: var(--color-fill);
+  color: var(--color-on-fill);
+}
+.rm-av-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 22px;
+}
+/* Away people get a dashed, empty avatar and muted text (no see-through opacity, which would
+   drop the text below readable contrast). */
+.rm-away .rm-av {
+  border-style: dashed;
+  border-color: var(--color-muted);
+  background: none;
+  color: var(--color-muted);
+}
+.rm-away .rm-name,
+.rm-away .rm-row-text b {
+  color: var(--color-muted);
+}
+.room-screen .tag {
+  padding: 2px 10px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  font-size: 13px;
+}
+.room-screen .tag-accent {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+  color: var(--accent-text);
+}
+.room-screen .tag-outline {
+  border-style: dashed;
+  border-color: var(--color-muted);
+  color: var(--color-muted);
+}
+
+/* — Ring view: timer tile + people — */
+.rm-ring-row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--bento-gap);
+  align-items: stretch;
+}
+.rm-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  text-align: center;
+}
+.rm-ring {
+  position: relative;
+  flex: none;
+  width: min(232px, 100%);
+  aspect-ratio: 1;
+  container-type: inline-size; /* lets the digits scale with the ring (cqw) */
+}
+.rm-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rm-ring-track,
+.rm-ring-prog {
+  fill: none;
+  stroke-width: 9;
+}
+.rm-ring-track {
+  stroke: color-mix(in srgb, var(--color-muted) 30%, var(--color-surface));
+}
+.rm-ring-prog {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s linear;
+}
+.rm-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+.rm-clock {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(36px, 22cqw, 52px);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+/* Round pips: filled = done, green ring = current, grey ring = still to come. */
+.rm-pips {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+.rm-pips span {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-muted);
+  border-radius: var(--radius-full);
+}
+.rm-pips span[data-state="done"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+.rm-pips span[data-state="now"] {
+  border-color: var(--color-accent);
+}
+.rm-pips-sm span {
+  width: 8px;
+  height: 8px;
+}
+
+/* — people list (Ring view) — */
+.rm-plist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 60px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+}
+.rm-row-text {
+  flex: 1 1 150px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rm-row-text b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.rm-row-text > span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rm-host {
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+.room-screen .rm-remove {
+  width: auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-sm);
+  border-color: transparent;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.room-screen .rm-remove:hover {
+  background: var(--color-tint-warn);
+  color: var(--color-text);
+}
+/* After the first click the button asks "Remove?" (its aria-label changes with it). */
+.room-screen .rm-remove[aria-label="Remove?"] {
+  border-color: var(--color-amber);
+  background: var(--color-tint-warn);
+  color: var(--color-text);
+}
+
+/* — Grid view: progress strip + person tiles — */
+.rm-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md) var(--space-lg);
+  padding: var(--space-lg);
+}
+.rm-strip-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rm-strip-time {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.rm-strip-prog {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.rm-strip-prog > span {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.rm-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-muted) 30%, var(--color-surface));
+}
+.rm-meter > div {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s linear;
+}
+.rm-strip-btns {
+  display: flex;
+  gap: var(--space-sm);
+}
+.rm-ptiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--bento-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rm-ptile {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+.rm-ptile.is-you {
+  border-color: var(--accent-text);
+}
+/* No camera feeds yet (video is not mounted), so the "feed" area is just the person's avatar. */
+.rm-ptile-face {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  background: var(--color-inset);
+}
+.rm-ptile-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.rm-name {
+  font-weight: 600;
+}
+.rm-task-line {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  overflow-wrap: anywhere;
+}
+.rm-ptile .rm-pips {
+  justify-content: flex-start;
+}
+
+/* — Timeline view: big clock, eight-segment bar, table — */
+.rm-tl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+.rm-tl-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.rm-tl-clock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rm-tl-time {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: clamp(64px, 11vw, 112px);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.rm-tl-time.is-break {
+  color: var(--color-amber);
+}
+.rm-tl-btns {
+  justify-content: flex-start;
+}
+.rm-segs {
+  display: flex;
+  gap: var(--space-xs);
+}
+.rm-seg {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.rm-seg-box {
+  position: relative;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+}
+.rm-seg.is-now .rm-seg-box {
+  border-color: var(--accent-text);
+}
+.rm-seg-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-amber);
+  transition: width 0.6s linear;
+}
+.rm-seg.is-focus .rm-seg-fill {
+  background: var(--color-accent);
+}
+.rm-seg-label {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rm-seg.is-now .rm-seg-label {
+  color: var(--color-text);
+}
+.rm-tl-table {
+  display: block; /* app.css makes .tile a flex column */
+  overflow-x: auto; /* scrolls inside the tile, never the page */
+  padding: var(--space-sm) var(--space-lg);
+}
+.rm-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+}
+.rm-table th {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.rm-table td {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-divider);
+}
+.rm-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.rm-who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+}
+.rm-who .rm-av {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+.rm-td-task {
+  color: var(--color-muted);
+}
+.rm-td-act {
+  text-align: right;
+}
+
+/* — side tiles: tasks, notes, ambient sound — */
+.rm-task-list {
+  display: flex;
+  flex-direction: column;
+}
+.rm-task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-xs) 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font: var(--text-body-md);
+  text-align: left;
+  cursor: pointer;
+}
+.rm-task:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.rm-task-box {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--accent-text);
+  border-radius: var(--radius-sm);
+  color: var(--color-on-fill);
+}
+.rm-task.is-done .rm-task-box {
+  border-color: var(--color-fill);
+  background: var(--color-fill);
+}
+.rm-task-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rm-task.is-done .rm-task-text {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+.rm-clear {
+  align-self: flex-start;
+}
+.rm-docs {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rm-doc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-divider);
+  font: var(--text-caption-sm);
+}
+.rm-doc .ellipsis {
+  flex: 1;
+}
+.rm-wide {
+  width: 100%;
+}
+.rm-sounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.rm-sound {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 56px;
+}
+.rm-sound-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rm-sound-text b {
+  font-weight: 600;
+}
+.rm-sound-text span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rm-vol {
+  flex: none;
+  width: 96px;
+  height: 44px; /* tall enough to be a comfortable tap target */
+  margin: 0;
+  accent-color: var(--accent-text);
+  cursor: pointer;
+}
+.rm-vol:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* — quiz phase — */
+.rm-quiz-head {
+  display: flex;
+  flex-direction: row; /* app.css gives every .tile flex-direction: column */
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.rm-quiz-copy {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.rm-quiz-head h2 {
+  font: var(--text-heading-xl);
+}
+.rm-quiz-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+}
+.rm-quiz-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 88px;
+  padding: var(--space-md);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-inset);
+  color: var(--color-text);
+  font: var(--text-body-md);
+  text-align: left;
+  cursor: pointer;
+}
+.rm-quiz-pick:hover {
+  border-color: var(--accent-text);
+}
+.rm-quiz-pick:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.rm-quiz-title {
+  font: var(--text-heading-md);
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.rm-quiz-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.rm-quiz-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.rm-score {
+  font: var(--text-heading-md);
+  font-variant-numeric: tabular-nums;
+}
+.rm-q {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0 0 var(--space-md);
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+.rm-q-prompt {
+  margin-bottom: var(--space-sm);
+  padding: 0;
+  font: 600 16px/1.45 var(--font-body);
+  text-wrap: pretty;
+}
+.rm-q-n {
+  margin-right: var(--space-xs);
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.room-screen .rm-choice:has(input:focus-visible) {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.room-screen .rm-choice:has(input:disabled) {
+  cursor: default;
+}
+/* After submitting: green = the right answer, amber = the answer you picked that was wrong.
+   Each also carries a text badge, so colour is never the only signal. */
+.room-screen .radio.rm-choice.is-correct {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+}
+.room-screen .radio.rm-choice.is-wrong {
+  border-color: var(--color-amber);
+  background: var(--color-tint-warn);
+}
+.rm-mark {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  font: var(--text-caption-sm);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rm-mark.is-correct {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+.rm-mark.is-wrong {
+  border-color: var(--color-amber);
+  color: var(--color-text);
+}
+.rm-quiz-actions {
+  justify-content: flex-start;
+}
+
+/* — chat — */
+.rm-chat-wrap {
+  position: relative;
+}
+/* The scrolling message list. A fixed, viewport-relative height keeps the tile from growing forever;
+   the first child gets margin-top:auto so a short conversation sits at the bottom, next to the box
+   you type in (justify-content:flex-end would make the top of a long list unreachable). */
+.rm-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  height: clamp(260px, 44vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+}
+.rm-chat-log:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.rm-chat-log > :first-child {
+  margin-top: auto;
+}
+.rm-chat-state {
+  align-items: center;
+  align-self: center;
+  margin-block: auto;
+  text-align: center;
+}
+.rm-chat-state .btn {
+  margin-top: var(--space-sm);
+}
+div.rm-chat-state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.rm-chat-older {
+  flex: none;
+  align-self: center;
+}
+.rm-chat-older[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: progress;
+}
+.rm-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rm-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+.rm-msg.is-mine {
+  flex-direction: row-reverse; /* own messages sit on the right, with the delete button on their left */
+}
+.rm-msg-main {
+  min-width: 0;
+  max-width: min(85%, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rm-msg.is-mine .rm-msg-main {
+  align-items: flex-end;
+}
+.rm-msg-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.rm-msg-who {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The body is user text: keep their line breaks, and break very long words instead of overflowing. */
+.rm-msg-body {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-inset);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.rm-msg.is-mine .rm-msg-body {
+  border-color: var(--accent-text);
+  background: var(--color-tint-ok);
+}
+.room-screen .rm-msg-del {
+  align-self: center;
+}
+.rm-chat-jump {
+  position: absolute;
+  bottom: var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.rm-chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-divider);
+}
+.rm-chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+.rm-chat-form textarea.rm-chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 112px;
+  resize: none;
+  line-height: 1.4;
+}
+.rm-chat-send {
+  flex: none;
+}
+.rm-chat-hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-xs) var(--space-md);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+}
+.rm-chat-count {
+  font-variant-numeric: tabular-nums;
+}
+.rm-chat-count.is-over {
+  color: var(--color-amber);
+  font-weight: 600;
+}
+
+/* — tablet: one column, timer and people still side by side — */
+@media (max-width: 1000px) {
+  .rm {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .rm-main,
+  .rm-side {
+    grid-column: 1 / -1;
+  }
+}
+
+/* — phone — */
+@media (max-width: 720px) {
+  .rm-ring-row,
+  .rm-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Person rows: avatar | name and task | status, with the remove button under the status. */
+  .rm-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    column-gap: var(--space-md);
+    row-gap: var(--space-xs);
+  }
+  .rm-row .rm-av {
+    grid-row: 1 / span 2;
+  }
+  .rm-row .rm-row-text {
+    grid-row: 1 / span 2;
+  }
+  .rm-row .tag {
+    grid-column: 3;
+    justify-self: end;
+  }
+  .rm-row .rm-remove {
+    grid-column: 3;
+    justify-self: end;
+  }
+  .rm-actions,
+  .rm-actions .seg {
+    width: 100%;
+  }
+  .rm-actions .btn {
+    flex: 1 1 auto;
+  }
+  .rm-card,
+  .rm-people,
+  .rm-timer,
+  .rm-strip,
+  .rm-tl,
+  .rm-quiz-head {
+    padding: var(--space-md);
+  }
+  .rm-tl-time {
+    font-size: 72px;
+  }
+  /* Eight segments are too narrow for their labels in one row: wrap to two rows of four.
+     !important because each cell's width is set inline by the timeline view. */
+  .rm-segs {
+    flex-wrap: wrap;
+  }
+  .rm-seg {
+    flex: 1 1 calc(25% - var(--space-xs)) !important;
+  }
+  .rm-seg-label {
+    white-space: normal;
+  }
+  /* The table becomes one small card per person instead of a sideways-scrolling grid. */
+  .rm-tl-table {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .rm-table {
+    min-width: 0;
+  }
+  .rm-table thead {
+    display: none;
+  }
+  .rm-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs) var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .rm-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .rm-table td,
+  .rm-table tbody tr:last-child td {
+    padding: 0;
+    border: 0;
+  }
+  /* Row 1: person and status. Row 2: what they are working on. Row 3: rounds and remove. */
+  .rm-table td:nth-child(1) {
+    grid-area: 1 / 1;
+  }
+  .rm-table td:nth-child(4) {
+    grid-area: 1 / 2;
+  }
+  .rm-table .rm-td-task {
+    grid-area: 2 / 1 / 3 / 3;
+  }
+  .rm-table td[data-label] {
+    grid-area: 3 / 1;
+    color: var(--color-muted);
+    font: var(--text-caption-sm);
+  }
+  .rm-table td[data-label]::before {
+    content: attr(data-label) ": ";
+  }
+  .rm-table .rm-td-act {
+    grid-area: 3 / 2;
+  }
+}
+
+/* After a mouse click (for example on a message's delete button) the list is focused by code so
+   keyboard focus isn't lost; ChatTile records the last input kind in data-input, and the ring is
+   drawn only for keyboard use. Tabbing to the list still shows it. */
+.rm-chat-log[data-input="pointer"]:focus-visible {
+  outline: none;
+}

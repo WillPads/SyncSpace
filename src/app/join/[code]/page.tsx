@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
+import { AppBackdrop } from "@/components/ui/Backdrop";
 import { ScreenMessage } from "@/components/ui/ScreenMessage";
 import { api, errorMessage } from "@/lib/api";
 import type { Room } from "@/lib/types";
@@ -11,7 +12,13 @@ import type { Room } from "@/lib/types";
 /** Where invite links and the "Room code" forms land: joins, then opens the room. */
 export default function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
-  return <RequireAuth>{() => <JoinRoom code={code.toUpperCase()} />}</RequireAuth>;
+  return (
+    // Same page shell as the other redesigned screens, so the loading, error and joining cards match.
+    <div className="redesign app-screen room-screen">
+      <AppBackdrop />
+      <RequireAuth>{() => <JoinRoom code={code.toUpperCase()} />}</RequireAuth>
+    </div>
+  );
 }
 
 function JoinRoom({ code }: { code: string }) {

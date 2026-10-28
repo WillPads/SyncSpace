@@ -7,7 +7,7 @@ import type { PersonView } from "@/lib/people";
 export function RemoveButton({ person, busy, onRemove }: { person: PersonView; busy: boolean; onRemove: (userId: string) => void }) {
   return (
     <ConfirmButton
-      className="btn btn-ghost btn-icon person-remove"
+      className="btn btn-ghost rm-remove"
       label={`Remove ${person.name} from the room`}
       confirmLabel="Remove?"
       disabled={busy}
@@ -35,21 +35,27 @@ export function PeopleList({
   onRemove: (userId: string) => void;
 }) {
   return (
-    <div className="people-list">
-      {people.map((person) => (
-        <div className={cn("person", person.away && "is-away")} key={person.userId}>
-          <span className={cn("av", person.isYou && "is-you")}>{person.initials}</span>
-          <span className="person-text">
-            <b>
-              {person.name}
-              {person.isHost && <span className="host-mark"> · host</span>}
-            </b>
-            <span>{person.taskLabel}</span>
-          </span>
-          <span className={person.tagClass}>{person.status}</span>
-          {canRemove(person, isAdmin) && <RemoveButton person={person} busy={busy} onRemove={onRemove} />}
-        </div>
-      ))}
-    </div>
+    <section className="tile rm-people" aria-labelledby="rm-people-h">
+      <header className="rm-card-head">
+        <h2 id="rm-people-h">In this room</h2>
+        <span className="rm-count">{people.length}</span>
+      </header>
+      <ul className="rm-plist">
+        {people.map((person) => (
+          <li className={cn("rm-row", person.away && "rm-away")} key={person.userId}>
+            <span className={cn("rm-av", person.isYou && "is-you")}>{person.initials}</span>
+            <span className="rm-row-text">
+              <b>
+                {person.name}
+                {person.isHost && <span className="rm-host"> · host</span>}
+              </b>
+              <span>{person.taskLabel}</span>
+            </span>
+            <span className={person.tagClass}>{person.status}</span>
+            {canRemove(person, isAdmin) && <RemoveButton person={person} busy={busy} onRemove={onRemove} />}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

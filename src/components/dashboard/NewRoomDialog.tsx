@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { Corners } from "@/components/ui/Corners";
 import { api, errorMessage } from "@/lib/api";
 
 const FOCUS_OPTIONS = [25, 50];
@@ -55,13 +54,12 @@ export function NewRoomDialog({ onClose }: { onClose: () => void }) {
       }}
     >
       <form
-        className="dialog blueprint"
+        className="dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-title"
         onSubmit={handleSubmit}
       >
-        <Corners />
         <span className="dialog-title" id="create-title">
           New room
         </span>
@@ -108,8 +106,7 @@ export function NewRoomDialog({ onClose }: { onClose: () => void }) {
           <button className="btn btn-secondary" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary blueprint" type="submit" disabled={submitting}>
-            <Corners />
+          <button className="btn btn-primary" type="submit" disabled={submitting}>
             {submitting ? "Creating…" : "Create and enter"}
           </button>
         </div>

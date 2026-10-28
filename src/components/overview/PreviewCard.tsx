@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Corners } from "@/components/ui/Corners";
 import { formatClock } from "@/lib/timer";
 
 const FOCUS_SECONDS = 25 * 60;
@@ -20,21 +19,16 @@ export function PreviewCard() {
   const progress = `${((1 - remaining / FOCUS_SECONDS) * 100).toFixed(2)}%`;
 
   return (
-    <div className="live-card blueprint" aria-label="Preview of a room timer">
-      <Corners />
-      <div className="row-between">
-        <span className="card-kicker">Preview · a room mid-session</span>
-        <span className="tag tag-accent">Focus</span>
+    <div className="tile ovw-preview" role="group" aria-label="Preview of a room timer">
+      <div className="ovw-preview-head">
+        <span className="ovw-kicker">Preview · a room mid-session</span>
+        <span className="chip chip-ok">Focus</span>
       </div>
-      <div className="live-clock">{clock}</div>
-      <div className="bar">
+      <div className="ovw-clock">{clock}</div>
+      <div className="ovw-progress" aria-hidden="true">
         <div style={{ width: progress }} />
       </div>
-      <div className="live-meta">
-        <span>Focus · Round 2 of 4</span>
-        <span>Break in {clock}</span>
-      </div>
-      <p className="muted preview-note">Everyone in the room sees this exact clock, to the second.</p>
+      <p className="help ovw-preview-note">Everyone in the room sees this exact clock, to the second.</p>
     </div>
   );
 }

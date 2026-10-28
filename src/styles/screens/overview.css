@@ -1,0 +1,179 @@
+/* Overview / landing page (app/page.tsx, components/overview/*). Same look as the login screen:
+   an accent hero tile, a preview tile and three step tiles on the bento grid. The top bar is
+   the login screen's (.auth-bar in login.css). Flat fills only. */
+
+.ovw-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.ovw-how {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  font-weight: 600;
+}
+.ovw-how:hover {
+  color: var(--color-text);
+}
+.redesign .ovw-how:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.ovw {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  align-content: start;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
+
+.ovw-hero {
+  grid-column: 1 / 8;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+}
+.ovw-hero h1 {
+  max-width: 16ch;
+  font: var(--text-heading-xl);
+  font-size: 52px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+.ovw-lede {
+  max-width: 50ch;
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+.ovw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+.ovw-actions .code-join {
+  display: flex;
+  gap: var(--space-sm);
+}
+.ovw-actions .code-join .input {
+  width: 160px;
+  font: var(--text-code-mono);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+.ovw-actions .code-join .input::placeholder {
+  font: var(--text-body-md);
+  letter-spacing: normal;
+}
+
+/* — preview tile — */
+.ovw-preview {
+  grid-column: 8 / 13;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl);
+}
+.ovw-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.ovw-kicker {
+  color: var(--color-muted);
+  font: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Timer digits are one of the two places the mono font is allowed. */
+.ovw-clock {
+  font: 700 clamp(64px, 9vw, 104px) / 0.95 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.ovw-progress {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-full);
+  background: var(--color-inset);
+}
+.ovw-progress div {
+  height: 100%;
+  background: var(--color-fill);
+}
+.ovw-preview-note {
+  margin: 0;
+}
+
+/* — three steps — */
+.ovw-steps {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--bento-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ovw-steps li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+}
+.ovw-step-n {
+  color: var(--accent-text);
+  font: var(--text-caption-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.ovw-steps h2 {
+  font: var(--text-heading-md);
+}
+.ovw-steps p {
+  max-width: 38ch;
+  color: var(--color-muted);
+}
+
+@media (max-width: 900px) {
+  .ovw {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ovw-hero,
+  .ovw-preview,
+  .ovw-steps {
+    grid-column: 1;
+  }
+  .ovw-hero {
+    padding: var(--space-lg);
+  }
+  .ovw-hero h1 {
+    font-size: 38px;
+  }
+  .ovw-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .ovw-how {
+    display: none; /* the steps are right below the hero on a phone */
+  }
+}
