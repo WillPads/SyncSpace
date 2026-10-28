@@ -17,6 +17,7 @@ Start every session by reading `HANDOFF.md`, then check git status yourself. For
 - Visual source of truth: `docs/design/SyncSpaceApp-preview.html`, with tokens in `docs/design/tokens.css` and the logo in `docs/design/logo/`.
 - Flat fills only. No gradients, ever. No glow or shadow on the logo.
 - Bento-box layout. Muted text uses `--brand-text-muted`.
+- Will's overrides of the mockup (2026-10-28): Space Grotesk is the only font (no JetBrains Mono); no blurred shadows on boxes; the welcome page is just a short description plus Create account / Sign in; the login page is just the sign-in card.
 - Don't copy the mockup's JS or fake data. Rebuild screens as React components on the real API.
 
 ## Layout

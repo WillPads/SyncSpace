@@ -4,7 +4,7 @@ Co-working rooms that share one Pomodoro clock. Create a room, share the code, a
 
 ## Stack
 
-- **Frontend** (repo root): Next.js 15 (App Router) + TypeScript, built from the SyncSpace design mockup in [`docs/design/`](docs/design/): a flat bento-box layout with dark and light themes, Space Grotesk text and JetBrains Mono for timers and room codes. Plain CSS, no Tailwind. Data fetching uses SWR.
+- **Frontend** (repo root): Next.js 15 (App Router) + TypeScript, built from the SyncSpace design mockup in [`docs/design/`](docs/design/): a flat bento-box layout with dark and light themes, set entirely in Space Grotesk (timers use same-width digits so they don't jitter). Plain CSS, no Tailwind. Data fetching uses SWR.
 - **Backend** (`server/`): Node.js + Express 5 + Prisma on PostgreSQL, with a `ws` WebSocket server for live room state. Auth is email/password with server-side sessions stored in Postgres: the httpOnly cookie holds a random token and only its hash is stored. Quizzes are written by Claude when an Anthropic API key is set, with a built-in generator as the fallback. The full REST and WebSocket reference is [`server/API.md`](server/API.md); the build log is [`progress.md`](progress.md).
 
 ## Getting started
@@ -57,7 +57,7 @@ Vercel's proxy can't carry WebSocket upgrades, so in production the room socket 
 
 **Render** (server): `DATABASE_URL` (Neon, pooled), `DIRECT_URL` (Neon, direct), `CLIENT_ORIGIN` (the Vercel URL), `NODE_ENV=production`, and optionally `ANTHROPIC_API_KEY`. `render.yaml` also sets `CLIENT_IP_HEADER=CF-Connecting-IP`, so sign-in and sign-up limits count each real visitor separately even though all web traffic reaches the server through Vercel. The start command runs `prisma migrate deploy` before booting. If an older Render service still has a `JWT_SECRET` variable, it's unused and can be deleted.
 
-**Vercel** (web app): `SERVER_URL=https://syncspace-willpads-api.onrender.com` and `NEXT_PUBLIC_WS_URL=wss://syncspace-willpads-api.onrender.com` (the Render service name in `render.yaml` sets that URL).
+**Vercel** (web app): `SERVER_URL=https://syncspace-willpads-api.onrender.com` and `NEXT_PUBLIC_WS_URL=wss://syncspace-willpads-api.onrender.com` (the Render service name in `render.yaml` sets that URL). Both are required for Production: [`next.config.ts`](next.config.ts) fails the Vercel production build if either is missing or points at a private address such as localhost, because the values are baked in when the site is built.
 
 On Render's free plan the server sleeps after 15 minutes without traffic, so the first request after a while can take up to a minute. Uploaded files are processed straight into the database, so Render's temporary disk is fine; uploads are capped at 4 MB to fit Vercel's request size limit.
 
@@ -65,7 +65,7 @@ On Render's free plan the server sleeps after 15 minutes without traffic, so the
 
 | Route | Screen |
 | --- | --- |
-| `/` | Overview |
+| `/` | Welcome page: what SyncSpace is, with Create account and Sign in |
 | `/login` | Sign in or create an account (`?mode=register` opens on Create account) |
 | `/dashboard` | Your rooms with live clocks, join by code, New room dialog, plus a 5-line notepad, an auto-saving quick note, uploads into a room you pick, recent files, and upcoming sessions (hosts can schedule them) |
 | `/join/<code>` | Where invite links land: joins the room, then opens it |
@@ -94,7 +94,7 @@ All plain CSS in `src/styles/`, loaded in this order by `src/app/layout.tsx`:
 - `base.css`: shared pieces of the redesign (tiles, buttons, inputs, dialogs, app bar, page backdrop), all scoped under `.redesign`.
 - `screens/*.css`: one file per screen (login, overview, dashboard, room, settings, signed-out).
 
-Design rules: flat fills only (no gradients; the dot and ring backdrop is SVG), no glow on the logo.
+Design rules: flat fills only. No gradients and no blurred shadows; tiles are separated by a 1px border. No glow on the logo. The welcome and sign-in pages have no decorative backdrop; the signed-in screens keep the flat SVG dot and ring backdrop.
 
 ## Not built yet
 
